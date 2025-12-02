@@ -7,13 +7,12 @@ import java.util.*
 
 class AStar {
 
-    fun calculate(start: BlockPos, goal: BlockPos): List<Node>? {
+    fun calculate(start: BlockPos, goal: BlockPos): NodePath? {
         val openSet = PriorityQueue<Node>()
         val closedSet = HashSet<BlockPos>()
-
         val nodeIndex = HashMap<BlockPos, Double>()
 
-        val startNode = Node(start, null, 0.0, start.getSquaredDistance(goal), MovementType.WALK)
+        val startNode = Node(start, null, 0.0, start.getSquaredDistance(goal))
         openSet.add(startNode)
         nodeIndex[start] = 0.0
 
@@ -23,7 +22,8 @@ class AStar {
         var iterations = 0
 
         while (openSet.isNotEmpty()) {
-            if (iterations++ > ConfigManager.data.maxIterations) break
+            if (iterations++ > ConfigManager.data.maxIterations)
+                break
 
             val current = openSet.poll()
 
@@ -36,12 +36,13 @@ class AStar {
                 return backtrack(current)
             }
 
-            if (closedSet.contains(current.pos)) continue
-            closedSet.add(current.pos)
+            if (!closedSet.add(current.pos))
+                continue
 
             val neighbors = MovementProvider.getNeighbors(current, goal)
             for (neighbor in neighbors) {
-                if (closedSet.contains(neighbor.pos)) continue
+                if (neighbor.pos in closedSet)
+                    continue
 
                 val newG = neighbor.costG
                 val oldG = nodeIndex[neighbor.pos] ?: Double.MAX_VALUE
@@ -53,20 +54,19 @@ class AStar {
             }
         }
 
-        if (bestNode != startNode) {
-            return backtrack(bestNode)
-        }
-
-        return null
+        return if (bestNode != startNode)
+            backtrack(bestNode) else null
     }
 
-    private fun backtrack(node: Node): List<Node> {
-        val path = ArrayList<Node>()
+    private fun backtrack(node: Node): NodePath {
+        val list = ArrayList<Node>()
         var curr: Node? = node
+
         while (curr != null) {
-            path.add(curr)
+            list.add(curr)
             curr = curr.parent
         }
-        return path.reversed()
+
+        return NodePath(list.reversed())
     }
 }

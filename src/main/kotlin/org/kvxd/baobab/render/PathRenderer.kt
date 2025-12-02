@@ -18,19 +18,18 @@ object PathRenderer {
             Renderer3D.render(context) {
                 val path = PathExecutor.path
 
-                if (path.isNullOrEmpty()) return@render
+                if (path.isEmpty || path.isFinished) return@render
                 if (!ConfigManager.data.renderPath) return@render
 
-                val currentIndex = PathExecutor.index
-                val startIndex = currentIndex.coerceIn(0, path.size - 1)
+                val startIndex = path.index.coerceIn(0, path.size - 1)
 
-                var prevPos = path[startIndex].pos.toCenterPos()
+                var prevPos = path[startIndex]?.pos?.toCenterPos() ?: return@render
 
                 depthTest(false)
 
                 for (i in (startIndex + 1) until path.size) {
                     val node = path[i]
-                    val currentPos = node.pos.toCenterPos()
+                    val currentPos = node?.pos?.toCenterPos() ?: return@render
 
                     drawLine(
                         start = prevPos,
@@ -42,7 +41,7 @@ object PathRenderer {
                     prevPos = currentPos
                 }
 
-                val lastPos = path.last().pos
+                val lastPos = path.last()?.pos ?: return@render
                 val destBox = Box(
                     lastPos.x.toDouble(), lastPos.y.toDouble(), lastPos.z.toDouble(),
                     lastPos.x + 1.0, lastPos.y + 1.0, lastPos.z + 1.0

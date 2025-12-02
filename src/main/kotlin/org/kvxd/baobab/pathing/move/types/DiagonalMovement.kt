@@ -1,7 +1,6 @@
 package org.kvxd.baobab.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
-import org.kvxd.baobab.pathing.calc.MovementType
 import org.kvxd.baobab.pathing.calc.Node
 import org.kvxd.baobab.pathing.move.MovementStrategy
 import org.kvxd.baobab.pathing.move.Physics
@@ -31,7 +30,7 @@ object DiagonalMovement : MovementStrategy {
                 val obstructedZ = isObstructed(neighborZ)
 
                 if (!obstructedX && !obstructedZ) {
-                    output.add(createNode(dest, current, target, MovementType.WALK, COST))
+                    output.add(createNode(dest, current, target, COST))
                 }
             }
         }

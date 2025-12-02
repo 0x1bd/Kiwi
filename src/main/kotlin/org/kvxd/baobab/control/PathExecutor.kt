@@ -1,23 +1,23 @@
 package org.kvxd.baobab.control
 
-import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import org.kvxd.baobab.client
 import org.kvxd.baobab.pathing.calc.AStar
-import org.kvxd.baobab.pathing.calc.MovementType
 import org.kvxd.baobab.pathing.calc.Node
+import org.kvxd.baobab.pathing.calc.NodePath
+import org.kvxd.baobab.pathing.move.MoveType
+import org.kvxd.baobab.pathing.move.MovementAnalysis
+import org.kvxd.baobab.player
 import org.kvxd.baobab.util.ClientMessenger
 import kotlin.concurrent.thread
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
 object PathExecutor {
 
-    var path: List<Node>? = null
-        private set
-
-    var index = 0
+    var path: NodePath = NodePath(emptyList())
         private set
 
     private var globalGoal: BlockPos? = null
@@ -37,7 +37,7 @@ object PathExecutor {
         if (calculating) return
         calculating = true
 
-        if (path == null) {
+        if (path.isEmpty) {
             ClientMessenger.feedback("Calculating path to ${target.toShortString()}...")
         }
 
@@ -46,15 +46,17 @@ object PathExecutor {
 
             client.execute {
                 calculating = false
-                if (result != null && result.isNotEmpty()) {
+
+                if (result != null && !result.isEmpty) {
                     path = result
-                    index = 0
                     InputController.active = true
 
-                    if (result.size == 1 && result[0].pos == start) {
+                    val first = path.current()
+                    if (first != null && first.pos == start && path.size == 1) {
                         stop()
                         ClientMessenger.error("Path stuck (No valid moves).")
                     }
+
                 } else {
                     stop()
                     ClientMessenger.error("No path found.")
@@ -65,7 +67,7 @@ object PathExecutor {
 
     fun stop() {
         active = false
-        path = null
+        path = NodePath(emptyList())
         globalGoal = null
         InputController.active = false
         InputController.reset()
@@ -79,46 +81,67 @@ object PathExecutor {
             return
         }
 
-        if (path == null) {
+        if (path.isEmpty) {
             repath()
             return
         }
 
-        val player = client.player!!
+        val currNode = path.current()
 
-        if (index >= path!!.size) {
-            val distToGlobal = sqrt(player.blockPos.getSquaredDistance(globalGoal!!))
+        if (currNode == null) {
+            finishCheck()
+            return
+        }
 
-            if (distToGlobal > 2.0) {
-                repath()
-            } else {
-                stop()
-                ClientMessenger.feedback("Destination reached!")
+        if (path.reachedCurrent(player.blockPos)) {
+            if (!path.advance()) {
+                finishCheck()
             }
             return
         }
 
-        val targetNode = path!![index]
-        val targetPos = targetNode.toVec()
-        val dist = player.squaredDistanceTo(targetPos.x, player.y, targetPos.z)
+        moveTowardNode(currNode)
+    }
 
-        if (dist < 0.6) {
-            index++
-            return
+    private fun finishCheck() {
+        val goal = globalGoal ?: return
+        val distToGlobal = sqrt(player.blockPos.getSquaredDistance(goal))
+
+        if (distToGlobal > 2.0) repath()
+        else {
+            stop()
+            ClientMessenger.feedback("Destination reached!")
         }
+    }
 
+    private fun moveTowardNode(node: Node) {
         InputController.reset()
+
+        val currentPos = player.blockPos
+        val isGrounded = player.isOnGround || player.isTouchingWater
+        val action = MovementAnalysis.analyze(currentPos, node.pos)
+
         InputController.forward = true
 
-        val dx = targetPos.x - player.x
-        val dz = targetPos.z - player.z
-        val targetYaw = MathHelper.wrapDegrees((atan2(dz, dx) * 57.2957763671875).toFloat() - 90f)
-        player.yaw = targetYaw
+        InputController.sprint = shouldSprint(currentPos, isGrounded)
 
-        if (targetNode.type == MovementType.JUMP) {
-            InputController.jump = true
-        } else if (player.horizontalCollision && player.isOnGround) {
+        val vec = node.toVec()
+        val dx = vec.x - player.x
+        val dz = vec.z - player.z
+        val yaw = MathHelper.wrapDegrees(
+            ((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
+        )
+        player.yaw = yaw
+
+        if (action == MoveType.JUMP) {
             InputController.jump = true
         }
+    }
+
+    private fun shouldSprint(currentPos: BlockPos, grounded: Boolean): Boolean {
+        if (!grounded) return false
+        val next = path.current() ?: return false
+
+        return MovementAnalysis.analyze(currentPos, next.pos) == MoveType.WALK
     }
 }

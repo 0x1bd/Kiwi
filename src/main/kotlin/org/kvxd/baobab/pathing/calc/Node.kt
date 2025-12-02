@@ -7,8 +7,7 @@ data class Node(
     val pos: BlockPos,
     val parent: Node?,
     val costG: Double,
-    val costH: Double,
-    val type: MovementType
+    val costH: Double
 ) : Comparable<Node> {
 
     val costF: Double get() = costG + costH
@@ -18,10 +17,4 @@ data class Node(
     }
 
     fun toVec(): Vec3d = Vec3d.ofBottomCenter(pos)
-}
-
-enum class MovementType {
-    WALK,
-    JUMP,
-    DROP
 }

@@ -1,5 +1,7 @@
 package org.kvxd.baobab.control
 
+import org.kvxd.baobab.player
+
 object InputController {
 
     var active: Boolean = false
@@ -10,7 +12,15 @@ object InputController {
     var right: Boolean = false
     var jump: Boolean = false
     var sneak: Boolean = false
+        set(value) {
+            field = value
+            player.isSneaking = value
+        }
     var sprint: Boolean = false
+        set(value) {
+            field = value
+            player.isSprinting = value
+        }
 
     fun reset() {
         forward = false
