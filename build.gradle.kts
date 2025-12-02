@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "2.2.21"
     id("fabric-loom") version "1.13-SNAPSHOT"
+    kotlin("plugin.serialization") version "2.2.21"
     id("maven-publish")
 }
 

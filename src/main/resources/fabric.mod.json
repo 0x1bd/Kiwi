@@ -11,9 +11,6 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.kvxd.baobab.client.BaobabClient"
-    ],
-    "main": [
       "org.kvxd.baobab.Baobab"
     ]
   },
