@@ -57,7 +57,7 @@ object PathExecutor {
                     }
                 } else {
                     stop()
-                    client.player?.sendMessage(Text.literal("§cBaobab: No path found."), false)
+                    ClientMessenger.error("No path found.")
                 }
             }
         }
