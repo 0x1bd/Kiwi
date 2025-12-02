@@ -14,8 +14,11 @@ import kotlin.math.sqrt
 
 object PathExecutor {
 
-    private var path: List<Node>? = null
-    private var index = 0
+    var path: List<Node>? = null
+        private set
+
+    var index = 0
+        private set
 
     private var globalGoal: BlockPos? = null
     private var active = false

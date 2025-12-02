@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import org.kvxd.baobab.command.CommandRegistry
 import org.kvxd.baobab.config.ConfigManager
 import org.kvxd.baobab.control.PathExecutor
+import org.kvxd.baobab.render.PathRenderer
 import org.kvxd.baobab.world.WorldSnapshot
 import org.slf4j.LoggerFactory
 
@@ -24,6 +25,8 @@ class Baobab : ClientModInitializer {
         WorldSnapshot.init()
 
         CommandRegistry.init()
+
+        PathRenderer.init()
 
         ClientLifecycleEvents.CLIENT_STOPPING.register {
             ConfigManager.save()

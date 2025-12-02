@@ -7,6 +7,6 @@ data class ConfigData(
     var maxFallHeight: Int = 3,
     var maxIterations: Int = 20_000,
 
-    var debugRender: Boolean = true,
+    var renderPath: Boolean = true,
     var pathTimeoutMs: Long = 5000
 )
