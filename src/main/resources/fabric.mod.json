@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
-  "id": "baobab",
+  "id": "kiwi",
   "version": "${version}",
-  "name": "Baobab",
-  "description": "Pathfinding",
+  "name": "Kiwi",
+  "description": "Lightweight client-side pathfinding mod for minecraft",
   "authors": [],
   "contact": {},
   "license": "GPL-3.0",
-  "icon": "assets/baobab/icon.png",
+  "icon": "assets/kiwi/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.kvxd.baobab.Baobab"
+      "org.kvxd.kiwi.Kiwi"
     ]
   },
   "mixins": [
-    "baobab.mixins.json"
+    "kiwi.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
