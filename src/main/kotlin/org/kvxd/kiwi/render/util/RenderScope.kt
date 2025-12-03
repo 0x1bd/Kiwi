@@ -23,8 +23,8 @@ class RenderScope(
 
     private var isDepthTestEnabled: Boolean = true
 
-    fun depthTest(enable: Boolean) {
-        this.isDepthTestEnabled = true
+    fun depthTest(enabled: Boolean) {
+        this.isDepthTestEnabled = enabled
     }
 
     private fun VertexConsumer.pos(matrix: Matrix4f, x: Float, y: Float, z: Float): VertexConsumer {
