@@ -10,6 +10,10 @@ data class ConfigData(
     var backtrackThreshold: Double = 1.5,
     var heuristicWeight: Double = 1.5,
 
+    var goalDistanceThreshold: Double = 2.0,
+    var horizontalDeviationThreshold: Double = 4.0,
+    var verticalDeviationThreshold: Double = 2.5,
+
     var renderPath: Boolean = true,
     var debugMode: Boolean = false
 )

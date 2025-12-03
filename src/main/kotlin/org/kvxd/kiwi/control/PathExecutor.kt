@@ -2,7 +2,7 @@ package org.kvxd.kiwi.control
 
 import net.minecraft.util.Formatting
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec2f
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.AStar
@@ -12,9 +12,9 @@ import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
+import org.kvxd.kiwi.util.RotationUtils
 import kotlin.concurrent.thread
-import kotlin.math.PI
-import kotlin.math.atan2
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 object PathExecutor {
@@ -124,6 +124,18 @@ object PathExecutor {
             return
         }
 
+        val targetPos = currNode.toVec()
+        val distSqXZ = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
+
+        val horizThreshold = ConfigManager.data.horizontalDeviationThreshold
+        val vertThreshold = ConfigManager.data.verticalDeviationThreshold
+
+        if (distSqXZ > horizThreshold || player.y < targetPos.y - vertThreshold) {
+            if (ConfigManager.data.debugMode) ClientMessenger.feedback("Deviated. Repathing...")
+            repath()
+            return
+        }
+
         if (path.reachedCurrent(player.blockPos)) {
             if (!path.advance()) {
                 finishCheck()
@@ -138,7 +150,8 @@ object PathExecutor {
         val goal = globalGoal ?: return
         val distToGlobal = sqrt(player.blockPos.getSquaredDistance(goal))
 
-        if (distToGlobal > 2.0) repath()
+        if (distToGlobal > ConfigManager.data.goalDistanceThreshold)
+            repath()
         else {
             stop()
             ClientMessenger.feedback("Destination reached!")
@@ -149,22 +162,62 @@ object PathExecutor {
         InputController.reset()
 
         val isGrounded = player.isOnGround || player.isTouchingWater
+        val targetPos = node.toVec()
+        val delta = targetPos.subtract(player.entityPos)
+
+        val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
+
+        // try to land centered on a block
+        if (!isGrounded && !player.abilities.flying && node.type == MovementType.DROP) {
+            val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
+
+            if (distSq < 0.0025) {
+                return
+            }
+
+            val localDistance = RotationUtils.getLocalVector(delta, player.yaw)
+            val localVelocity = RotationUtils.getLocalVector(player.velocity, player.yaw)
+
+            applyAirStrafe(localDistance, localVelocity)
+
+            InputController.sprint = false
+            return
+        }
+
+        player.yaw = targetYaw
 
         InputController.forward = true
+
         InputController.sprint = shouldSprint(isGrounded)
 
-        val vec = node.toVec()
-        val dx = vec.x - player.x
-        val dz = vec.z - player.z
-        val yaw = MathHelper.wrapDegrees(
-            ((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
-        )
-        player.yaw = yaw
-
         if (node.type == MovementType.JUMP ||
-            (player.isTouchingWater && vec.y > player.y)
+            (player.horizontalCollision && player.isOnGround) ||
+            (player.isTouchingWater && delta.y > 0)
         ) {
             InputController.jump = true
+        }
+    }
+
+    private fun applyAirStrafe(localDistance: Vec2f, localVelocity: Vec2f) {
+        val localForward = localDistance.y
+        val localStrafe = localDistance.x
+        val velForward = localVelocity.y
+        val velStrafe = localVelocity.x
+
+        if (abs(localForward) > 0.05) {
+            if (localForward > 0) {
+                if (velForward < 0.15) InputController.forward = true
+            } else {
+                if (velForward > -0.15) InputController.back = true
+            }
+        }
+
+        if (abs(localStrafe) > 0.05) {
+            if (localStrafe > 0) {
+                if (velStrafe < 0.15) InputController.left = true
+            } else {
+                if (velStrafe > -0.15) InputController.right = true
+            }
         }
     }
 
