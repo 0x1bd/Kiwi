@@ -1,6 +1,7 @@
 package org.kvxd.kiwi.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
+import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.move.MovementStrategy
 import org.kvxd.kiwi.pathing.move.Physics
@@ -30,7 +31,7 @@ object DiagonalMovement : MovementStrategy {
                 val obstructedZ = isObstructed(neighborZ)
 
                 if (!obstructedX && !obstructedZ) {
-                    output.add(createNode(dest, current, target, COST))
+                    output.add(createNode(dest, current, target, MovementType.WALK, COST))
                 }
             }
         }

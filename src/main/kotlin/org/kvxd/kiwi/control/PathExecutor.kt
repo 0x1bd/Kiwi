@@ -4,10 +4,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.pathing.calc.AStar
+import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
-import org.kvxd.kiwi.pathing.move.MoveType
-import org.kvxd.kiwi.pathing.move.MovementAnalysis
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import kotlin.concurrent.thread
@@ -117,13 +116,10 @@ object PathExecutor {
     private fun moveTowardNode(node: Node) {
         InputController.reset()
 
-        val currentPos = player.blockPos
         val isGrounded = player.isOnGround || player.isTouchingWater
-        val action = MovementAnalysis.analyze(currentPos, node.pos)
 
         InputController.forward = true
-
-        InputController.sprint = shouldSprint(currentPos, isGrounded)
+        InputController.sprint = shouldSprint(isGrounded)
 
         val vec = node.toVec()
         val dx = vec.x - player.x
@@ -133,15 +129,17 @@ object PathExecutor {
         )
         player.yaw = yaw
 
-        if (action == MoveType.JUMP) {
+        if (node.type == MovementType.JUMP ||
+            (player.horizontalCollision && player.isOnGround) ||
+            (player.isTouchingWater && vec.y > player.y)) {
             InputController.jump = true
         }
     }
 
-    private fun shouldSprint(currentPos: BlockPos, grounded: Boolean): Boolean {
+    private fun shouldSprint(grounded: Boolean): Boolean {
         if (!grounded) return false
-        val next = path.current() ?: return false
+        val next = path.peek(1) ?: return false
 
-        return MovementAnalysis.analyze(currentPos, next.pos) == MoveType.WALK
+        return next.type.canSprint
     }
 }

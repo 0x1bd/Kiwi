@@ -7,7 +7,8 @@ data class Node(
     val pos: BlockPos,
     val parent: Node?,
     val costG: Double,
-    val costH: Double
+    val costH: Double,
+    val type: MovementType
 ) : Comparable<Node> {
 
     val costF: Double get() = costG + costH

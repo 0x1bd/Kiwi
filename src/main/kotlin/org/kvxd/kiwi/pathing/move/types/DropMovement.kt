@@ -3,6 +3,7 @@ package org.kvxd.kiwi.pathing.move.types
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.move.MovementStrategy
 import org.kvxd.kiwi.pathing.move.Physics
@@ -33,7 +34,7 @@ object DropMovement : MovementStrategy {
 
                 if (Physics.isWalkable(land)) {
                     val cost = 1.5 + (i * 0.5)
-                    output.add(createNode(land, current, target, cost))
+                    output.add(createNode(land, current, target, MovementType.DROP, cost))
                     break
                 }
             }

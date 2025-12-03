@@ -12,7 +12,7 @@ class AStar {
         val closedSet = HashSet<BlockPos>()
         val nodeIndex = HashMap<BlockPos, Double>()
 
-        val startNode = Node(start, null, 0.0, start.getSquaredDistance(goal))
+        val startNode = Node(start, null, 0.0, start.getSquaredDistance(goal), MovementType.WALK)
         openSet.add(startNode)
         nodeIndex[start] = 0.0
 
