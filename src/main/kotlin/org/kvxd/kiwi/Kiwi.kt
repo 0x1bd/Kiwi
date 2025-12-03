@@ -7,7 +7,6 @@ import org.kvxd.kiwi.command.CommandRegistry
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.control.PathExecutor
 import org.kvxd.kiwi.render.PathRenderer
-import org.kvxd.kiwi.world.WorldSnapshot
 import org.slf4j.LoggerFactory
 
 class Kiwi : ClientModInitializer {
@@ -21,8 +20,6 @@ class Kiwi : ClientModInitializer {
 
     override fun onInitializeClient() {
         ConfigManager.load()
-
-        WorldSnapshot.init()
 
         CommandRegistry.init()
 

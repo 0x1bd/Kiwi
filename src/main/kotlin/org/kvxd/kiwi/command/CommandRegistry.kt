@@ -2,7 +2,6 @@ package org.kvxd.kiwi.command
 
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
-import org.kvxd.kiwi.command.impl.ClearCacheCommand
 import org.kvxd.kiwi.command.impl.ConfigCommand
 import org.kvxd.kiwi.command.impl.GotoCommand
 import org.kvxd.kiwi.command.impl.StopCommand
@@ -10,7 +9,6 @@ import org.kvxd.kiwi.command.impl.StopCommand
 object CommandRegistry {
 
     private val commands = listOf(
-        ClearCacheCommand,
         GotoCommand,
         StopCommand,
         ConfigCommand

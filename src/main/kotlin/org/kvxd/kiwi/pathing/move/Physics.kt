@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.move
 
 import net.minecraft.util.math.BlockPos
-import org.kvxd.kiwi.world.WorldSnapshot
+import org.kvxd.kiwi.world
 
 object Physics {
 
@@ -18,8 +18,9 @@ object Physics {
      * Checks if a block obstructs movement.
      */
     fun isSolid(pos: BlockPos): Boolean {
-        val state = WorldSnapshot.getBlock(pos)
-        return state.isOpaqueFullCube || state.blocksMovement()
+        val state = world.getBlockState(pos)
+
+        return !state.getCollisionShape(world, pos).isEmpty
     }
 
 }
