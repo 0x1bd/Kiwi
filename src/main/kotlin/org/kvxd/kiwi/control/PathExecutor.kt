@@ -1,12 +1,15 @@
 package org.kvxd.kiwi.control
 
+import net.minecraft.util.Formatting
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import org.kvxd.kiwi.client
+import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.AStar
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
+import org.kvxd.kiwi.pathing.calc.PathResult
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import kotlin.concurrent.thread
@@ -36,7 +39,7 @@ object PathExecutor {
         if (calculating) return
         calculating = true
 
-        if (path.isEmpty) {
+        if (path.isEmpty && !ConfigManager.data.debugMode) {
             ClientMessenger.feedback("Calculating path to ${target.toShortString()}...")
         }
 
@@ -46,9 +49,13 @@ object PathExecutor {
             client.execute {
                 calculating = false
 
-                if (result != null && !result.isEmpty) {
-                    path = result
+                if (result.path != null && !result.path.isEmpty) {
+                    path = result.path
                     InputController.active = true
+
+                    if (ConfigManager.data.debugMode) {
+                        printDebugStats(result)
+                    }
 
                     val first = path.current()
                     if (first != null && first.pos == start && path.size == 1) {
@@ -59,8 +66,33 @@ object PathExecutor {
                 } else {
                     stop()
                     ClientMessenger.error("No path found.")
+                    if (ConfigManager.data.debugMode) {
+                        printDebugStats(result)
+                    }
                 }
             }
+        }
+    }
+
+    private fun printDebugStats(result: PathResult) {
+        val nodesPerSec = if (result.timeComputedMs > 0)
+            (result.nodesVisited / (result.timeComputedMs / 1000.0)).toInt()
+        else 0
+
+        val length = result.path?.size ?: 0
+
+        ClientMessenger.send {
+            text("[", Formatting.DARK_GRAY)
+            text("Debug", Formatting.GREEN)
+            text("] ", Formatting.DARK_GRAY)
+
+            element("Time", String.format("%.2fms", result.timeComputedMs))
+            separator()
+            element("Visited", result.nodesVisited)
+            separator()
+            element("NPS", nodesPerSec, valueColor = Formatting.AQUA)
+            separator()
+            element("Len", length)
         }
     }
 
@@ -130,8 +162,8 @@ object PathExecutor {
         player.yaw = yaw
 
         if (node.type == MovementType.JUMP ||
-            (player.horizontalCollision && player.isOnGround) ||
-            (player.isTouchingWater && vec.y > player.y)) {
+            (player.isTouchingWater && vec.y > player.y)
+        ) {
             InputController.jump = true
         }
     }
@@ -139,7 +171,6 @@ object PathExecutor {
     private fun shouldSprint(grounded: Boolean): Boolean {
         if (!grounded) return false
         val next = path.peek(1) ?: return false
-
         return next.type.canSprint
     }
 }

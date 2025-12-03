@@ -16,13 +16,9 @@ object MovementProvider {
         DropMovement
     )
 
-    fun getNeighbors(current: Node, target: BlockPos): List<Node> {
-        val nodes = ArrayList<Node>()
-
-        for (strategy in STRATEGIES) {
-            strategy.getNeighbors(current, target, nodes)
+    fun getNeighbors(current: Node, target: BlockPos, buffer: MutableList<Node>) {
+        for (i in STRATEGIES.indices) {
+            STRATEGIES[i].getNeighbors(current, target, buffer)
         }
-
-        return nodes
     }
 }

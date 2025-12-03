@@ -24,7 +24,6 @@ object GotoCommand : AbstractCommand("goto") {
                                         val y = IntegerArgumentType.getInteger(ctx, "y")
                                         val z = IntegerArgumentType.getInteger(ctx, "z")
 
-                                        val client = ctx.source.client
                                         PathExecutor.computeAndSet(BlockPos(x, y, z))
                                         1
                                     }

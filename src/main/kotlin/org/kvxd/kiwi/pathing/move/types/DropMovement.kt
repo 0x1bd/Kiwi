@@ -9,7 +9,6 @@ import org.kvxd.kiwi.pathing.move.MovementStrategy
 import org.kvxd.kiwi.pathing.move.Physics
 
 object DropMovement : MovementStrategy {
-
     private val CARDINALS = Direction.Type.HORIZONTAL.toList()
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
@@ -18,13 +17,14 @@ object DropMovement : MovementStrategy {
         for (dir in CARDINALS) {
             val ledge = start.offset(dir)
 
-            if (Physics.isSolid(ledge)) continue
+            if (Physics.isSolid(ledge) || Physics.isSolid(ledge.up())) continue
 
             for (i in 1..ConfigManager.data.maxFallHeight) {
                 val land = ledge.down(i)
 
                 var obstructed = false
-                for (j in 0 until i) {
+
+                for (j in 1 until i) {
                     if (Physics.isSolid(ledge.down(j))) {
                         obstructed = true
                         break

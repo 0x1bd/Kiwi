@@ -31,7 +31,7 @@ object DiagonalMovement : MovementStrategy {
                 val obstructedZ = isObstructed(neighborZ)
 
                 if (!obstructedX && !obstructedZ) {
-                    output.add(createNode(dest, current, target, MovementType.WALK, COST))
+                    output.add(createNode(dest, current, target, MovementType.DIAGONAL, COST))
                 }
             }
         }
