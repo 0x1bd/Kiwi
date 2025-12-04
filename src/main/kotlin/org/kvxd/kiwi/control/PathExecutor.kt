@@ -148,10 +148,11 @@ object PathExecutor {
             val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
             if (distSq < 0.0025) return
 
-            MovementController.applyAirStrafe(player, targetPos)
+            MovementController.applyAirStrafe(player, targetPos, targetYaw)
+
+            RotationManager.setTarget(targetYaw, 0f)
 
             InputController.sprint = false
-            RotationManager.reset()
             return
         }
 
@@ -161,7 +162,7 @@ object PathExecutor {
             player.yaw = targetYaw
         }
 
-        MovementController.applyControls(targetYaw, player.yaw)
+        MovementController.applyControls()
 
         InputController.sprint = MovementController.shouldSprint(player, path)
 

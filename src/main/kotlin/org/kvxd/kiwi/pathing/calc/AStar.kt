@@ -101,7 +101,7 @@ class AStar {
 
         val isValid = found ||
                 (iterations > maxOps && pathSize > 1) ||
-                (pathSize > 1 && bestH < ConfigManager.data.backtrackThreshold)
+                (pathSize > 1)
 
         return PathResult(
             path = if (isValid) finalPath else null,

@@ -1,39 +1,25 @@
 package org.kvxd.kiwi.control
 
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
-import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.util.RotationUtils
 import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.sin
 
 object MovementController {
 
-    fun applyControls(targetYaw: Float, currentYaw: Float) {
-        if (ConfigManager.data.freelook) {
-            val diff = MathHelper.wrapDegrees(targetYaw - currentYaw)
-            val rad = Math.toRadians(diff.toDouble())
-
-            val forward = cos(rad)
-            val strafe = sin(rad)
-
-            InputController.forward = forward > 0.3
-            InputController.back = forward < -0.3
-            InputController.right = strafe > 0.3
-            InputController.left = strafe < -0.3
-        } else {
-            InputController.forward = true
-        }
+    fun applyControls() {
+        InputController.forward = true
+        InputController.back = false
+        InputController.left = false
+        InputController.right = false
     }
 
-    fun applyAirStrafe(player: ClientPlayerEntity, targetPos: Vec3d) {
+    fun applyAirStrafe(player: ClientPlayerEntity, targetPos: Vec3d, baseYaw: Float) {
         val delta = targetPos.subtract(player.entityPos)
 
-        val localDistance = RotationUtils.getLocalVector(delta, player.yaw)
-        val localVelocity = RotationUtils.getLocalVector(player.velocity, player.yaw)
+        val localDistance = RotationUtils.getLocalVector(delta, baseYaw)
+        val localVelocity = RotationUtils.getLocalVector(player.velocity, baseYaw)
 
         val localForward = localDistance.y
         val localStrafe = localDistance.x
@@ -64,5 +50,4 @@ object MovementController {
         val next = path.peek(1) ?: return false
         return next.type.canSprint
     }
-
 }
