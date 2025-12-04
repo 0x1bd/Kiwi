@@ -1,6 +1,5 @@
 package org.kvxd.kiwi.control
 
-import net.minecraft.util.math.Vec2f
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.AStar
@@ -14,8 +13,6 @@ import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.PathProfiler
 import org.kvxd.kiwi.util.RotationUtils
 import kotlin.concurrent.thread
-import kotlin.math.abs
-import kotlin.math.min
 
 object PathExecutor {
 
@@ -23,7 +20,6 @@ object PathExecutor {
         private set
 
     private var currentGoal: Goal? = null
-
     private var active = false
     private var calculating = false
 
@@ -77,6 +73,7 @@ object PathExecutor {
         currentGoal = null
         InputController.active = false
         InputController.reset()
+        RotationManager.reset()
     }
 
     fun tick() {
@@ -94,7 +91,7 @@ object PathExecutor {
 
         Physics.clearCache()
 
-        if (validatePath()) {
+        if (PathValidator.isPathObstructed(path)) {
             if (ConfigManager.data.debugMode) ClientMessenger.feedback("Path obstructed! Repathing...")
             repath()
             return
@@ -128,27 +125,6 @@ object PathExecutor {
         moveTowardNode(currNode)
     }
 
-    private fun validatePath(): Boolean {
-        val nodes = path.toList()
-        val currentIndex = path.index
-
-        val lookahead = min(nodes.size, currentIndex + 10)
-
-        for (i in currentIndex until lookahead) {
-            val node = nodes[i]
-
-            if (!Physics.isWalkable(node.pos)) {
-                return true
-            }
-
-            if (node.type == MovementType.JUMP) {
-                if (Physics.isSolid(node.pos.up(2))) return true
-            }
-        }
-
-        return false
-    }
-
     private fun finishCheck() {
         val goal = currentGoal ?: return
 
@@ -166,66 +142,31 @@ object PathExecutor {
         val isGrounded = player.isOnGround || player.isTouchingWater
         val targetPos = node.toVec()
         val delta = targetPos.subtract(player.entityPos)
-
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
 
-        // try to land centered on a block
         if (!isGrounded && !player.abilities.flying && node.type == MovementType.DROP) {
             val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
+            if (distSq < 0.0025) return
 
-            if (distSq < 0.0025) {
-                return
-            }
-
-            val localDistance = RotationUtils.getLocalVector(delta, player.yaw)
-            val localVelocity = RotationUtils.getLocalVector(player.velocity, player.yaw)
-
-            applyAirStrafe(localDistance, localVelocity)
+            MovementController.applyAirStrafe(player, targetPos)
 
             InputController.sprint = false
+            RotationManager.reset()
             return
         }
 
-        player.yaw = targetYaw
+        RotationManager.setTarget(targetYaw, 0f)
 
-        InputController.forward = true
+        if (!ConfigManager.data.freelook) {
+            player.yaw = targetYaw
+        }
 
-        InputController.sprint = shouldSprint(isGrounded)
+        MovementController.applyControls(targetYaw, player.yaw)
 
-        if (node.type == MovementType.JUMP ||
-            (player.horizontalCollision && player.isOnGround) ||
-            (player.isTouchingWater && delta.y > 0)
-        ) {
+        InputController.sprint = MovementController.shouldSprint(player, path)
+
+        if (node.type == MovementType.JUMP || (player.isTouchingWater && delta.y > 0)) {
             InputController.jump = true
         }
-    }
-
-    private fun applyAirStrafe(localDistance: Vec2f, localVelocity: Vec2f) {
-        val localForward = localDistance.y
-        val localStrafe = localDistance.x
-        val velForward = localVelocity.y
-        val velStrafe = localVelocity.x
-
-        if (abs(localForward) > 0.05) {
-            if (localForward > 0) {
-                if (velForward < 0.15) InputController.forward = true
-            } else {
-                if (velForward > -0.15) InputController.back = true
-            }
-        }
-
-        if (abs(localStrafe) > 0.05) {
-            if (localStrafe > 0) {
-                if (velStrafe < 0.15) InputController.left = true
-            } else {
-                if (velStrafe > -0.15) InputController.right = true
-            }
-        }
-    }
-
-    private fun shouldSprint(grounded: Boolean): Boolean {
-        if (!grounded) return false
-        val next = path.peek(1) ?: return false
-        return next.type.canSprint
     }
 }

@@ -13,5 +13,7 @@ data class ConfigData(
     var verticalDeviationThreshold: Double = 2.5,
 
     var renderPath: Boolean = true,
-    var debugMode: Boolean = false
+    var debugMode: Boolean = false,
+
+    var freelook: Boolean = true
 )
