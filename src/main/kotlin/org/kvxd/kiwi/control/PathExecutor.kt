@@ -2,13 +2,13 @@ package org.kvxd.kiwi.control
 
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
 import org.kvxd.kiwi.pathing.calc.RepathThread
 import org.kvxd.kiwi.pathing.goal.Goal
-import org.kvxd.kiwi.pathing.move.Physics
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.PathProfiler
@@ -91,7 +91,7 @@ object PathExecutor {
             return
         }
 
-        Physics.clearCache()
+        CollisionCache.clearCache()
 
         if (PathValidator.isPathObstructed(path)) {
             ClientMessenger.debug("Path obstructed! Repathing...")

@@ -1,8 +1,8 @@
 package org.kvxd.kiwi.control
 
+import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.NodePath
-import org.kvxd.kiwi.pathing.move.Physics
 import kotlin.math.min
 
 object PathValidator {
@@ -16,12 +16,12 @@ object PathValidator {
         for (i in currentIndex until end) {
             val node = nodes[i]
 
-            if (!Physics.isWalkable(node.pos)) {
+            if (!CollisionCache.isWalkable(node.pos)) {
                 return true
             }
 
             if (node.type == MovementType.JUMP) {
-                if (Physics.isSolid(node.pos.up(2))) return true
+                if (CollisionCache.isSolid(node.pos.up(2))) return true
             }
         }
 

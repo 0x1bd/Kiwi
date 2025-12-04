@@ -2,7 +2,7 @@ package org.kvxd.kiwi.pathing.goal
 
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.config.ConfigManager
-import org.kvxd.kiwi.pathing.move.Physics
+import org.kvxd.kiwi.pathing.cache.CollisionCache
 import kotlin.math.sqrt
 
 class BlockGoal(private val target: BlockPos) : Goal {
@@ -12,7 +12,7 @@ class BlockGoal(private val target: BlockPos) : Goal {
 
         if (!ConfigManager.data.strictPosition) {
             if (pos == target.up()) {
-                return Physics.isSolid(target)
+                return CollisionCache.isSolid(target)
             }
         }
 

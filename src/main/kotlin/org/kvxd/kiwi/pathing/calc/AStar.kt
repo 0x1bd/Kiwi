@@ -2,10 +2,10 @@ package org.kvxd.kiwi.pathing.calc
 
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.pathing.move.MovementProvider
-import org.kvxd.kiwi.pathing.move.Physics
 
 class AStar {
 
@@ -23,7 +23,7 @@ class AStar {
         closedSet.clear()
         nodeRegistry.clear()
 
-        Physics.clearCache()
+        CollisionCache.clearCache()
 
         val hStart = goal.getHeuristic(start)
         val startNode = Node(start, null, 0.0, hStart, MovementType.WALK)

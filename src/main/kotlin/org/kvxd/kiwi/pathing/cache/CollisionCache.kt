@@ -1,9 +1,9 @@
-package org.kvxd.kiwi.pathing.move
+package org.kvxd.kiwi.pathing.cache
 
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.world
 
-object Physics {
+object CollisionCache {
 
     private val cache = ThreadLocal.withInitial { HashMap<Long, Boolean>(4096) }
 

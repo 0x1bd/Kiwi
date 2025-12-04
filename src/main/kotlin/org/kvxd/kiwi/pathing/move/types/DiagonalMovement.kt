@@ -1,10 +1,10 @@
 package org.kvxd.kiwi.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
+import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.move.MovementStrategy
-import org.kvxd.kiwi.pathing.move.Physics
 
 object DiagonalMovement : MovementStrategy {
 
@@ -23,7 +23,7 @@ object DiagonalMovement : MovementStrategy {
         for ((dx, dz) in OFFSETS) {
             val dest = start.add(dx, 0, dz)
 
-            if (Physics.isWalkable(dest)) {
+            if (CollisionCache.isWalkable(dest)) {
                 val neighborX = start.add(dx, 0, 0)
                 val neighborZ = start.add(0, 0, dz)
 
@@ -38,6 +38,6 @@ object DiagonalMovement : MovementStrategy {
     }
 
     private fun isObstructed(pos: BlockPos): Boolean {
-        return Physics.isSolid(pos) || Physics.isSolid(pos.up())
+        return CollisionCache.isSolid(pos) || CollisionCache.isSolid(pos.up())
     }
 }
