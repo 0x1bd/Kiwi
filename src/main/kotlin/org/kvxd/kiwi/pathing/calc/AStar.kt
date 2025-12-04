@@ -3,42 +3,41 @@ package org.kvxd.kiwi.pathing.calc
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
+import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.pathing.move.MovementProvider
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 class AStar {
 
+    private val nodeRegistry = HashMap<Long, Node>(8192)
     private val openSet = MinHeap()
-    private val closedSet = HashSet<BlockPos>(4096)
 
-    private val nodeRegistry = HashMap<BlockPos, Node>(4096)
+    private val closedSet = HashSet<Long>(8192)
+
     private val neighborBuffer = ArrayList<Node>(32)
 
-    fun calculate(start: BlockPos, goal: BlockPos): PathResult {
+    fun calculate(start: BlockPos, goal: Goal): PathResult {
         val startTime = System.nanoTime()
 
         openSet.clear()
         closedSet.clear()
         nodeRegistry.clear()
 
-        val weight = ConfigManager.data.heuristicWeight
-
-        val hStart = heuristic(start, goal) * weight
+        val hStart = goal.getHeuristic(start)
         val startNode = Node(start, null, 0.0, hStart, MovementType.WALK)
 
         openSet.add(startNode)
-        nodeRegistry[start] = startNode
+        nodeRegistry[start.asLong()] = startNode
 
         var bestNode: Node = startNode
         var bestH = hStart
 
         var iterations = 0
         var nodesVisited = 0
+
         val maxOps = ConfigManager.data.maxIterations
 
         var finalPath: NodePath? = null
+        var found = false
 
         while (!openSet.isEmpty()) {
             if (iterations++ > maxOps) break
@@ -46,45 +45,40 @@ class AStar {
             val current = openSet.poll() ?: break
             nodesVisited++
 
-            val rawH = current.costH / weight
-            if (rawH < ConfigManager.data.backtrackThreshold) {
-                finalPath = backtrack(current)
+            if (goal.hasReached(current.pos)) {
+                bestNode = current
+                found = true
                 break
             }
 
-            if (rawH < bestH) {
-                bestH = rawH
+            if (current.costH < bestH) {
+                bestH = current.costH
                 bestNode = current
             }
 
-            if (!closedSet.add(current.pos)) continue
+            val currentLong = current.posLong
+            if (!closedSet.add(currentLong)) continue
 
             neighborBuffer.clear()
-            MovementProvider.getNeighbors(current, goal, neighborBuffer)
+            MovementProvider.getNeighbors(current, goal.getApproximateTarget(), neighborBuffer)
 
             for (i in 0 until neighborBuffer.size) {
-                val neighbor = neighborBuffer[i]
+                val neighborNode = neighborBuffer[i]
+                val nPosLong = neighborNode.posLong
 
-                if (closedSet.contains(neighbor.pos)) continue
+                if (closedSet.contains(nPosLong)) continue
 
-                val existingNode = nodeRegistry[neighbor.pos]
+                val existingNode = nodeRegistry[nPosLong]
 
-                val hCost = heuristic(neighbor.pos, goal) * weight
+                val hCost = goal.getHeuristic(neighborNode.pos) * 1.001
 
                 if (existingNode == null) {
-                    val newNode = Node(
-                        neighbor.pos,
-                        current,
-                        neighbor.costG,
-                        hCost,
-                        neighbor.type
-                    )
-
+                    val newNode = neighborNode.copy(costH = hCost)
                     openSet.add(newNode)
-                    nodeRegistry[neighbor.pos] = newNode
+                    nodeRegistry[nPosLong] = newNode
                 } else {
-                    if (neighbor.costG < existingNode.costG) {
-                        existingNode.costG = neighbor.costG
+                    if (neighborNode.costG < existingNode.costG) {
+                        existingNode.costG = neighborNode.costG
                         existingNode.parent = current
 
                         openSet.update(existingNode)
@@ -93,35 +87,28 @@ class AStar {
             }
         }
 
-        if (finalPath == null && bestNode != startNode) {
-            finalPath = backtrack(bestNode)
-        }
+        val pathStart = if (found) bestNode else bestNode
+        finalPath = reconstructPath(pathStart)
 
         val endTime = System.nanoTime()
         val durationMs = (endTime - startTime) / 1_000_000.0
 
-        return PathResult(finalPath, nodesVisited, durationMs, iterations)
+        return PathResult(
+            path = if (found || (finalPath.size > 1 && bestH < ConfigManager.data.backtrackThreshold)) finalPath else null,
+            nodesVisited = nodesVisited,
+            timeComputedMs = durationMs,
+            iterations = iterations
+        )
     }
 
-    private fun heuristic(a: BlockPos, b: BlockPos): Double {
-        val dx = abs(a.x - b.x).toDouble()
-        val dy = abs(a.y - b.y).toDouble()
-        val dz = abs(a.z - b.z).toDouble()
-
-        val maxD = max(dx, dz)
-        val minD = min(dx, dz)
-
-        val distXZ = (minD * 1.41421356) + (maxD - minD)
-        return (distXZ + dy) * 1.001
-    }
-
-    private fun backtrack(node: Node): NodePath {
+    private fun reconstructPath(node: Node): NodePath {
         val list = ArrayList<Node>()
         var curr: Node? = node
         while (curr != null) {
             list.add(curr)
             curr = curr.parent
         }
+
         list.reverse()
         return NodePath(list)
     }

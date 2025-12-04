@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.command.AbstractCommand
 import org.kvxd.kiwi.control.PathExecutor
+import org.kvxd.kiwi.pathing.goal.BlockGoal
 
 object GotoCommand : AbstractCommand("goto") {
 
@@ -24,7 +25,7 @@ object GotoCommand : AbstractCommand("goto") {
                                         val y = IntegerArgumentType.getInteger(ctx, "y")
                                         val z = IntegerArgumentType.getInteger(ctx, "z")
 
-                                        PathExecutor.computeAndSet(BlockPos(x, y, z))
+                                        PathExecutor.setGoal(BlockGoal(BlockPos(x, y, z)))
                                         1
                                     }
                             )

@@ -8,9 +8,7 @@ data class ConfigData(
     var maxIterations: Int = 20_000,
 
     var backtrackThreshold: Double = 1.5,
-    var heuristicWeight: Double = 1.5,
 
-    var goalDistanceThreshold: Double = 2.0,
     var horizontalDeviationThreshold: Double = 4.0,
     var verticalDeviationThreshold: Double = 2.5,
 

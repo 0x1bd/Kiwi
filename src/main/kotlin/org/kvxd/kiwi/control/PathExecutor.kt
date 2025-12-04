@@ -1,7 +1,5 @@
 package org.kvxd.kiwi.control
 
-import net.minecraft.util.Formatting
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec2f
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
@@ -9,97 +7,72 @@ import org.kvxd.kiwi.pathing.calc.AStar
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
-import org.kvxd.kiwi.pathing.calc.PathResult
+import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
+import org.kvxd.kiwi.util.PathProfiler
 import org.kvxd.kiwi.util.RotationUtils
 import kotlin.concurrent.thread
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 object PathExecutor {
 
     var path: NodePath = NodePath(emptyList())
         private set
 
-    private var globalGoal: BlockPos? = null
+    private var currentGoal: Goal? = null
+
     private var active = false
     private var calculating = false
 
-    fun computeAndSet(target: BlockPos) {
-        globalGoal = target
+    fun setGoal(goal: Goal) {
+        currentGoal = goal
         active = true
         repath()
     }
 
     private fun repath() {
         val start = client.player?.blockPos ?: return
-        val target = globalGoal ?: return
+        val goal = currentGoal ?: return
 
         if (calculating) return
         calculating = true
 
         if (path.isEmpty && !ConfigManager.data.debugMode) {
-            ClientMessenger.feedback("Calculating path to ${target.toShortString()}...")
+            ClientMessenger.feedback("Calculating path...")
         }
 
         thread {
-            val result = AStar().calculate(start, target)
+            val result = AStar().calculate(start, goal)
 
             client.execute {
                 calculating = false
 
-                if (result.path != null && !result.path.isEmpty) {
+                val success = result.path != null && !result.path.isEmpty
+                if (ConfigManager.data.debugMode || !success) {
+                    PathProfiler.record(result, success)
+                }
+
+                if (success) {
                     path = result.path
                     InputController.active = true
 
-                    if (ConfigManager.data.debugMode) {
-                        printDebugStats(result)
-                    }
-
                     val first = path.current()
                     if (first != null && first.pos == start && path.size == 1) {
-                        stop()
-                        ClientMessenger.error("Path stuck (No valid moves).")
+                        finishCheck()
                     }
-
                 } else {
                     stop()
-                    ClientMessenger.error("No path found.")
-                    if (ConfigManager.data.debugMode) {
-                        printDebugStats(result)
-                    }
+                    ClientMessenger.error("No path found to destination.")
                 }
             }
-        }
-    }
-
-    private fun printDebugStats(result: PathResult) {
-        val nodesPerSec = if (result.timeComputedMs > 0)
-            (result.nodesVisited / (result.timeComputedMs / 1000.0)).toInt()
-        else 0
-
-        val length = result.path?.size ?: 0
-
-        ClientMessenger.send {
-            text("[", Formatting.DARK_GRAY)
-            text("Debug", Formatting.GREEN)
-            text("] ", Formatting.DARK_GRAY)
-
-            element("Time", String.format("%.2fms", result.timeComputedMs))
-            separator()
-            element("Visited", result.nodesVisited)
-            separator()
-            element("NPS", nodesPerSec, valueColor = Formatting.AQUA)
-            separator()
-            element("Len", length)
         }
     }
 
     fun stop() {
         active = false
         path = NodePath(emptyList())
-        globalGoal = null
+        currentGoal = null
         InputController.active = false
         InputController.reset()
     }
@@ -147,14 +120,13 @@ object PathExecutor {
     }
 
     private fun finishCheck() {
-        val goal = globalGoal ?: return
-        val distToGlobal = sqrt(player.blockPos.getSquaredDistance(goal))
+        val goal = currentGoal ?: return
 
-        if (distToGlobal > ConfigManager.data.goalDistanceThreshold)
-            repath()
-        else {
+        if (goal.hasReached(player.blockPos)) {
             stop()
-            ClientMessenger.feedback("Destination reached!")
+            ClientMessenger.feedback("Goal reached!")
+        } else {
+            repath()
         }
     }
 
