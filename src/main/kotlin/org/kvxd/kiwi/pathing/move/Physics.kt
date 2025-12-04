@@ -5,22 +5,30 @@ import org.kvxd.kiwi.world
 
 object Physics {
 
-    /**
-     * Checks if a block is safe to stand on (Solid ground, Air at feet, Air at head).
-     */
+    private val cache = ThreadLocal.withInitial { HashMap<Long, Boolean>(4096) }
+
+    fun clearCache() {
+        cache.get().clear()
+    }
+
     fun isWalkable(pos: BlockPos): Boolean {
         return !isSolid(pos) &&
                 !isSolid(pos.up()) &&
                 isSolid(pos.down())
     }
 
-    /**
-     * Checks if a block obstructs movement.
-     */
     fun isSolid(pos: BlockPos): Boolean {
+        val map = cache.get()
+        val key = pos.asLong()
+
+        if (map.containsKey(key)) {
+            return map[key]!!
+        }
+
         val state = world.getBlockState(pos)
+        val isSolid = !state.getCollisionShape(world, pos).isEmpty
 
-        return !state.getCollisionShape(world, pos).isEmpty
+        map[key] = isSolid
+        return isSolid
     }
-
 }

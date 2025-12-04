@@ -5,6 +5,7 @@ import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.pathing.move.MovementProvider
+import org.kvxd.kiwi.pathing.move.Physics
 
 class AStar {
 
@@ -21,6 +22,8 @@ class AStar {
         openSet.clear()
         closedSet.clear()
         nodeRegistry.clear()
+
+        Physics.clearCache()
 
         val hStart = goal.getHeuristic(start)
         val startNode = Node(start, null, 0.0, hStart, MovementType.WALK)
@@ -80,6 +83,7 @@ class AStar {
                     if (neighborNode.costG < existingNode.costG) {
                         existingNode.costG = neighborNode.costG
                         existingNode.parent = current
+                        existingNode.type = neighborNode.type
 
                         openSet.update(existingNode)
                     }
@@ -87,14 +91,20 @@ class AStar {
             }
         }
 
-        val pathStart = if (found) bestNode else bestNode
+        val pathStart = bestNode
         finalPath = reconstructPath(pathStart)
 
         val endTime = System.nanoTime()
         val durationMs = (endTime - startTime) / 1_000_000.0
 
+        val pathSize = finalPath.size
+
+        val isValid = found ||
+                (iterations > maxOps && pathSize > 1) ||
+                (pathSize > 1 && bestH < ConfigManager.data.backtrackThreshold)
+
         return PathResult(
-            path = if (found || (finalPath.size > 1 && bestH < ConfigManager.data.backtrackThreshold)) finalPath else null,
+            path = if (isValid) finalPath else null,
             nodesVisited = nodesVisited,
             timeComputedMs = durationMs,
             iterations = iterations

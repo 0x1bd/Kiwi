@@ -8,12 +8,14 @@ import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.goal.Goal
+import org.kvxd.kiwi.pathing.move.Physics
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.PathProfiler
 import org.kvxd.kiwi.util.RotationUtils
 import kotlin.concurrent.thread
 import kotlin.math.abs
+import kotlin.math.min
 
 object PathExecutor {
 
@@ -90,6 +92,14 @@ object PathExecutor {
             return
         }
 
+        Physics.clearCache()
+
+        if (validatePath()) {
+            if (ConfigManager.data.debugMode) ClientMessenger.feedback("Path obstructed! Repathing...")
+            repath()
+            return
+        }
+
         val currNode = path.current()
 
         if (currNode == null) {
@@ -100,10 +110,9 @@ object PathExecutor {
         val targetPos = currNode.toVec()
         val distSqXZ = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
 
-        val horizThreshold = ConfigManager.data.horizontalDeviationThreshold
-        val vertThreshold = ConfigManager.data.verticalDeviationThreshold
-
-        if (distSqXZ > horizThreshold || player.y < targetPos.y - vertThreshold) {
+        if (distSqXZ > ConfigManager.data.horizontalDeviationThreshold ||
+            player.y < targetPos.y - ConfigManager.data.verticalDeviationThreshold
+        ) {
             if (ConfigManager.data.debugMode) ClientMessenger.feedback("Deviated. Repathing...")
             repath()
             return
@@ -117,6 +126,27 @@ object PathExecutor {
         }
 
         moveTowardNode(currNode)
+    }
+
+    private fun validatePath(): Boolean {
+        val nodes = path.toList()
+        val currentIndex = path.index
+
+        val lookahead = min(nodes.size, currentIndex + 10)
+
+        for (i in currentIndex until lookahead) {
+            val node = nodes[i]
+
+            if (!Physics.isWalkable(node.pos)) {
+                return true
+            }
+
+            if (node.type == MovementType.JUMP) {
+                if (Physics.isSolid(node.pos.up(2))) return true
+            }
+        }
+
+        return false
     }
 
     private fun finishCheck() {

@@ -4,13 +4,19 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.util.math.Box
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.control.PathExecutor
+import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.render.util.Renderer3D
 import java.awt.Color
 
 object PathRenderer {
 
-    val LINE_COLOR: Color = Color.ORANGE
-    val DEST_COLOR: Color = Color.GREEN
+    private val COLOR_WALK = Color.GREEN
+    private val COLOR_JUMP = Color(0, 100, 255)
+    private val COLOR_DROP = Color.RED
+    private val COLOR_DIAGONAL = Color.CYAN
+
+    private val COLOR_DEST = Color.MAGENTA
+
     const val LINE_WIDTH = 4.0f
 
     fun init() {
@@ -22,19 +28,25 @@ object PathRenderer {
                 if (!ConfigManager.data.renderPath) return@render
 
                 val startIndex = path.index.coerceIn(0, path.size - 1)
-
                 var prevPos = path[startIndex]?.pos?.toCenterPos() ?: return@render
 
                 depthTest(false)
 
                 for (i in (startIndex + 1) until path.size) {
-                    val node = path[i]
-                    val currentPos = node?.pos?.toCenterPos() ?: return@render
+                    val node = path[i] ?: continue
+                    val currentPos = node.pos.toCenterPos()
+
+                    val segmentColor = when (node.type) {
+                        MovementType.WALK -> COLOR_WALK
+                        MovementType.JUMP -> COLOR_JUMP
+                        MovementType.DROP -> COLOR_DROP
+                        MovementType.DIAGONAL -> COLOR_DIAGONAL
+                    }
 
                     drawLine(
                         start = prevPos,
                         end = currentPos,
-                        color = LINE_COLOR,
+                        color = segmentColor,
                         lineWidth = LINE_WIDTH
                     )
 
@@ -49,7 +61,7 @@ object PathRenderer {
 
                 drawBox(
                     box = destBox,
-                    color = DEST_COLOR,
+                    color = COLOR_DEST,
                     filled = false
                 )
             }
