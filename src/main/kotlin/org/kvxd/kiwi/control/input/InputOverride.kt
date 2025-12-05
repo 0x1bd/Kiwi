@@ -12,15 +12,27 @@ object InputOverride {
     @JvmStatic
     var state: State = State()
 
-    data class State(
-        var forward: Boolean = false,
-        var back: Boolean = false,
-        var left: Boolean = false,
-        var right: Boolean = false,
-        var jump: Boolean = false,
-        var sneak: Boolean = false,
+    class State {
+
+        var forward: Boolean = false
+        var back: Boolean = false
+        var left: Boolean = false
+        var right: Boolean = false
+        var jump: Boolean = false
+        var sneak: Boolean = false
+            set(value) {
+                field = value
+                if (isActive)
+                    player.isSneaking = value
+            }
+
         var sprint: Boolean = false
-    )
+            set(value) {
+                field = value
+                if (isActive)
+                    player.isSprinting = value
+            }
+    }
 
     fun activate() {
         reset()
@@ -37,6 +49,12 @@ object InputOverride {
     }
 
     fun reset() {
-        state = State()
+        state.forward = false
+        state.back = false
+        state.left = false
+        state.right = false
+        state.jump = false
+        state.sneak = false
+        state.sprint = false
     }
 }

@@ -28,7 +28,7 @@ object DropExecutor : MovementExecutor {
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
         MovementController.applyAirStrafe(player, targetPos, targetYaw)
 
-        RotationManager.setTarget(targetYaw, 0f)
+        RotationManager.setTarget(yaw = targetYaw)
         InputOverride.state.sprint = false
     }
 }

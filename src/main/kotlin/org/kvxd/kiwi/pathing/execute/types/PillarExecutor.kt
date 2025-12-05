@@ -20,7 +20,7 @@ import kotlin.math.abs
 object PillarExecutor : MovementExecutor {
 
     override val deviationThreshold: Double
-        get() = 0.5
+        get() = 0.65
 
     override fun isFinished(node: Node): Boolean {
         return CollisionCache.isSolid(node.pos.down())
@@ -33,7 +33,7 @@ object PillarExecutor : MovementExecutor {
             return
         }
 
-        RotationManager.setTarget(player.yaw, 90f)
+        RotationManager.setTarget(pitch = 90f)
 
         if (player.isOnGround)
             handleGroundAlign()

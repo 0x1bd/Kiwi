@@ -37,4 +37,10 @@ object RotationUtils {
         return Vec2f(localStrafe.toFloat(), localForward.toFloat())
     }
 
+    fun normalize(angle: Float): Float {
+        var a = angle % 360f
+        if (a >= 180f) a -= 360f
+        if (a < -180f) a += 360f
+        return a
+    }
 }

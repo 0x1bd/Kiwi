@@ -19,5 +19,8 @@ data class ConfigData(
      */
     var strictPosition: Boolean = false,
 
-    var freelook: Boolean = true
+    var freelook: Boolean = true,
+
+
+    var allowPillar: Boolean = true
 )

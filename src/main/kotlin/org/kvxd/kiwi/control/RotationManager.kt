@@ -2,6 +2,7 @@ package org.kvxd.kiwi.control
 
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.player
+import org.kvxd.kiwi.util.RotationUtils
 
 object RotationManager {
 
@@ -13,9 +14,15 @@ object RotationManager {
         hasTarget = false
     }
 
-    fun setTarget(yaw: Float, pitch: Float) {
-        targetYaw = yaw
-        targetPitch = pitch
+    fun setTarget(yaw: Float? = null, pitch: Float? = null) {
+        if (yaw != null) {
+            targetYaw = RotationUtils.normalize(yaw)
+        }
+
+        if (pitch != null) {
+            targetPitch = pitch.coerceIn(-90f, 90f)
+        }
+
         hasTarget = true
     }
 

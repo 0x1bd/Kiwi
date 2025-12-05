@@ -18,7 +18,7 @@ object StandardExecutor : MovementExecutor {
         val targetPos = node.toVec()
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
 
-        RotationManager.setTarget(targetYaw, player.pitch)
+        RotationManager.setTarget(yaw = targetYaw)
 
         MovementController.forward()
 

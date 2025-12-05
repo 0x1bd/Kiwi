@@ -113,23 +113,24 @@ object PathExecutor {
         }
 
         val targetPos = currNode.toVec()
-        val dx = abs(player.x - targetPos.x)
-        val dz = abs(player.z - targetPos.z)
-        val distSqXZ = dx * dx + dz * dz
+
+        val delta = player.entityPos.subtract(targetPos)
+
+        val distSqXZ = delta.horizontalLengthSquared()
 
         val threshold = executor.deviationThreshold
         val maxDistSq = threshold * threshold
 
-        val dy = player.y - targetPos.y
-        if (dy < -ConfigManager.data.verticalDeviationThreshold) {
-            ClientMessenger.debug("Deviated Y (Fallen ${String.format("%.2f", abs(dy))}m). Repathing...")
+        if (delta.y < -ConfigManager.data.verticalDeviationThreshold) {
+            ClientMessenger.debug("Deviated Y (Fallen ${String.format("%.2f", abs(delta.y))}m). Repathing...")
             repath()
             return
         }
 
         if (distSqXZ > maxDistSq) {
-            val axis = if (dx > dz) "X" else "Z"
+            val axis = if (abs(delta.x) > abs(delta.z)) "X" else "Z"
             val dist = sqrt(distSqXZ)
+
             ClientMessenger.debug("Deviated $axis (Dist: ${String.format("%.2f", dist)} > $threshold). Repathing...")
             repath()
             return
