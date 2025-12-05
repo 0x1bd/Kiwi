@@ -18,13 +18,10 @@ public class MixinPlayerEntityRenderer {
     private void onUpdateRenderState(PlayerLikeEntity player, PlayerEntityRenderState state, float tickDelta, CallbackInfo ci) {
         if (player == MinecraftClient.getInstance().player) {
             if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
+                state.pitch = RotationManager.INSTANCE.getTargetPitch();
+                state.bodyYaw = RotationManager.INSTANCE.getTargetYaw();
 
-                float targetYaw = RotationManager.INSTANCE.getTargetYaw();
-                float targetPitch = RotationManager.INSTANCE.getTargetPitch();
-
-                state.pitch = targetPitch;
-                state.relativeHeadYaw = targetYaw;
-                state.bodyYaw = targetYaw;
+                state.relativeHeadYaw = 0f;
             }
         }
     }
