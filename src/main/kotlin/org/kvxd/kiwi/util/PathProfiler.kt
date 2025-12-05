@@ -25,9 +25,6 @@ object PathProfiler {
         val color = if (success) Formatting.GREEN else Formatting.RED
 
         ClientMessenger.send {
-            text("[", Formatting.DARK_GRAY)
-            text("Bench", Formatting.AQUA)
-            text("] ", Formatting.DARK_GRAY)
             element("Status", if (success) "OK" else "FAIL", valueColor = color)
             separator()
             element("Time", String.format("%.2fms", result.timeComputedMs))
