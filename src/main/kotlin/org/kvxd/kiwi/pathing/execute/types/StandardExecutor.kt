@@ -1,10 +1,8 @@
 package org.kvxd.kiwi.pathing.execute.types
 
-import org.kvxd.kiwi.control.InputHelper
-import org.kvxd.kiwi.control.movement.ActionResult
-import org.kvxd.kiwi.control.movement.actionResult
-import org.kvxd.kiwi.control.movement.impl.Input
-import org.kvxd.kiwi.control.movement.impl.Rotate
+import org.kvxd.kiwi.control.MovementController
+import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
@@ -16,25 +14,19 @@ object StandardExecutor : MovementExecutor {
 
     override fun isFinished(node: Node): Boolean = true
 
-    override fun execute(node: Node, path: NodePath): ActionResult {
+    override fun execute(node: Node, path: NodePath) {
         val targetPos = node.toVec()
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
 
-        val result = actionResult()
+        RotationManager.setTarget(yaw = targetYaw)
 
-        result += Rotate(yaw = targetYaw)
-        result += Input(
-            forward = true,
-            sprint = InputHelper.shouldSprint(player, path)
-        )
+        MovementController.forward()
+
+        InputOverride.state.sprint = MovementController.shouldSprint(player, path)
 
         val deltaY = targetPos.y - player.y
         if (node.type == MovementType.JUMP || (player.isTouchingWater && deltaY > 0)) {
-            result += Input(
-                jump = true
-            )
+            InputOverride.state.jump = true
         }
-
-        return result
     }
 }

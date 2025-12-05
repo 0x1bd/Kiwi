@@ -25,16 +25,6 @@ object InputOverride {
             player.isSprinting = it
         }
 
-        // TODO: Implement proper override
-        var attack by flag {
-            client.options.attackKey.isPressed = it
-        }
-
-        // TODO: Implement proper override
-        var use by flag {
-            client.options.useKey.isPressed = it
-        }
-
         private fun flag(onChange: (Boolean) -> Unit = {}) =
             Delegates.observable(false) { _, _, new ->
                 if (isActive) onChange(new)
@@ -48,8 +38,6 @@ object InputOverride {
             jump = false
             sneak = false
             sprint = false
-            attack = false
-            use = false
         }
     }
 
