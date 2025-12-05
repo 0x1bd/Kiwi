@@ -1,6 +1,7 @@
 package org.kvxd.kiwi.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
+import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
@@ -17,6 +18,8 @@ object PillarMovement : AbstractMovement(MovementType.PILLAR) {
     }
 
     override fun getCost(current: Node, dest: BlockPos): Double {
+        if (!ConfigManager.data.allowPillar) return Double.POSITIVE_INFINITY
+
         if (CollisionCache.isSolid(dest)) return Double.POSITIVE_INFINITY
         if (CollisionCache.isSolid(dest.up())) return Double.POSITIVE_INFINITY
 
