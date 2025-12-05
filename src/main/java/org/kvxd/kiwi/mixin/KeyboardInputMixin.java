@@ -28,6 +28,11 @@ public class KeyboardInputMixin extends Input {
                     c.getSprint()
             );
 
+            // consume the jump
+            if (c.getJump()) {
+                c.setJump(false);
+            }
+
             float forward = c.getForward() == c.getBack() ? 0.0F : (c.getForward() ? 1.0F : -1.0F);
             float strafe = c.getLeft() == c.getRight() ? 0.0F : (c.getLeft() ? 1.0F : -1.0F);
 

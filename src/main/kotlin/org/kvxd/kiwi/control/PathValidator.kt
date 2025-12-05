@@ -3,25 +3,28 @@ package org.kvxd.kiwi.control
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.NodePath
-import kotlin.math.min
 
 object PathValidator {
 
-    fun isPathObstructed(path: NodePath, lookaheadCount: Int = 5): Boolean {
+    fun isPathObstructed(path: NodePath): Boolean {
+        val limit = (path.index + 5).coerceAtMost(path.size)
         val nodes = path.toList()
-        val currentIndex = path.index
 
-        val end = min(nodes.size, currentIndex + lookaheadCount)
-
-        for (i in currentIndex until end) {
+        for (i in path.index until limit) {
             val node = nodes[i]
 
-            if (!CollisionCache.isWalkable(node.pos)) {
+            // might start crouched on a neighboring block and thus is hovering over air
+            // so we skip the first node
+            if (i == 0) continue
+
+            if (CollisionCache.isSolid(node.pos) || CollisionCache.isSolid(node.pos.up())) {
                 return true
             }
 
-            if (node.type == MovementType.JUMP) {
-                if (CollisionCache.isSolid(node.pos.up(2))) return true
+            if (node.type == MovementType.WALK || node.type == MovementType.JUMP) {
+                if (!CollisionCache.isSolid(node.pos.down())) {
+                    return true
+                }
             }
         }
 

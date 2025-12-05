@@ -15,11 +15,22 @@ object MovementController {
         InputController.right = false
     }
 
-    fun applyAirStrafe(player: ClientPlayerEntity, targetPos: Vec3d, baseYaw: Float) {
+    fun moveToward(player: ClientPlayerEntity, targetPos: Vec3d, threshold: Double = 0.05) {
+        val baseYaw = if (RotationManager.hasTarget) RotationManager.targetYaw else player.yaw
         val delta = targetPos.subtract(player.entityPos)
+        val local = RotationUtils.getLocalVector(delta, baseYaw)
 
-        val localDistance = RotationUtils.getLocalVector(delta, baseYaw)
-        val localVelocity = RotationUtils.getLocalVector(player.velocity, baseYaw)
+        if (local.y > threshold) InputController.forward = true
+        else if (local.y < -threshold) InputController.back = true
+
+        if (local.x > threshold) InputController.left = true
+        else if (local.x < -threshold) InputController.right = true
+    }
+
+    fun applyAirStrafe(player: ClientPlayerEntity, targetPos: Vec3d, yaw: Float) {
+        val delta = targetPos.subtract(player.entityPos)
+        val localDistance = RotationUtils.getLocalVector(delta, yaw)
+        val localVelocity = RotationUtils.getLocalVector(player.velocity, yaw)
 
         val localForward = localDistance.y
         val localStrafe = localDistance.x

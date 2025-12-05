@@ -10,32 +10,26 @@ import org.kvxd.kiwi.pathing.move.MovementStrategy
 
 object DropMovement : MovementStrategy {
 
-    private val CARDINALS = Direction.Type.HORIZONTAL.toList()
+    const val BASE_COST = 1.5
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val start = current.pos
 
-        for (dir in CARDINALS) {
+        Direction.Type.HORIZONTAL.forEach { dir ->
             val ledge = start.offset(dir)
 
-            if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.up())) continue
+            if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.up())) return@forEach
 
             for (i in 1..ConfigManager.data.maxFallHeight) {
                 val land = ledge.down(i)
 
-                var obstructed = false
-
-                for (j in 1 until i) {
-                    if (CollisionCache.isSolid(ledge.down(j))) {
-                        obstructed = true
-                        break
-                    }
-                }
-                if (obstructed) break
-
                 if (CollisionCache.isWalkable(land)) {
-                    val cost = 1.5 + (i * 0.5)
-                    output.add(createNode(land, current, target, MovementType.DROP, cost))
+                    val cost = BASE_COST + (i * 0.5)
+                    output += createNode(land, current, target, MovementType.DROP, cost)
+                    break
+                }
+
+                if (CollisionCache.isSolid(land)) {
                     break
                 }
             }

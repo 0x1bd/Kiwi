@@ -3,8 +3,6 @@ package org.kvxd.kiwi.control
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.cache.CollisionCache
-import org.kvxd.kiwi.pathing.calc.MovementType
-import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
 import org.kvxd.kiwi.pathing.calc.RepathThread
@@ -32,40 +30,28 @@ object PathExecutor {
     private fun repath() {
         val start = client.player?.blockPos ?: return
         val goal = currentGoal ?: return
-
         if (calculating) return
         calculating = true
-
-        if (path.isEmpty) {
-            ClientMessenger.debug("Calculating path...")
-        }
-
-        RepathThread(start, goal) { result ->
-            handlePathResult(result)
-        }.start()
+        if (path.isEmpty) ClientMessenger.debug("Calculating path...")
+        RepathThread(start, goal) { result -> handlePathResult(result) }.start()
     }
 
     private fun handlePathResult(result: PathResult) {
         calculating = false
-
         val success = result.path != null && !result.path.isEmpty
-        if (ConfigManager.data.debugMode || !success) {
-            PathProfiler.record(result, success)
-        }
+        if (ConfigManager.data.debugMode || !success) PathProfiler.record(result, success)
 
         if (success) {
             path = result.path
             InputController.active = true
-
             val first = path.current()
             val currentStart = client.player?.blockPos
-
             if (currentStart != null && first != null && first.pos == currentStart && path.size == 1) {
                 finishCheck()
             }
         } else {
             stop()
-            ClientMessenger.error("No path found to destination.")
+            ClientMessenger.error("No path found.")
         }
     }
 
@@ -76,6 +62,16 @@ object PathExecutor {
         InputController.active = false
         InputController.reset()
         RotationManager.reset()
+    }
+
+    private fun finishCheck() {
+        val goal = currentGoal ?: return
+        if (goal.hasReached(player.blockPos)) {
+            stop()
+            ClientMessenger.feedback("Goal reached!")
+        } else {
+            repath()
+        }
     }
 
     fun tick() {
@@ -99,17 +95,17 @@ object PathExecutor {
             return
         }
 
-        val currNode = path.current()
-
-        if (currNode == null) {
+        val currNode = path.current() ?: run {
             finishCheck()
             return
         }
 
+        val executor = currNode.type.executor
+
         val targetPos = currNode.toVec()
         val distSqXZ = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
 
-        if (distSqXZ > ConfigManager.data.horizontalDeviationThreshold ||
+        if (distSqXZ > executor.deviationThreshold ||
             player.y < targetPos.y - ConfigManager.data.verticalDeviationThreshold
         ) {
             ClientMessenger.debug("Deviated. Repathing...")
@@ -118,58 +114,14 @@ object PathExecutor {
         }
 
         if (path.reachedCurrent(player.blockPos)) {
-            if (!path.advance()) {
-                finishCheck()
+            if (executor.isFinished(currNode)) {
+                if (!path.advance()) finishCheck()
+                return
             }
-            return
         }
 
-        moveTowardNode(currNode)
-    }
+        executor.execute(currNode, path)
 
-    private fun finishCheck() {
-        val goal = currentGoal ?: return
-
-        if (goal.hasReached(player.blockPos)) {
-            stop()
-            ClientMessenger.feedback("Goal reached!")
-        } else {
-            repath()
-        }
-    }
-
-    private fun moveTowardNode(node: Node) {
-        InputController.reset()
-
-        val isGrounded = player.isOnGround || player.isTouchingWater
-        val targetPos = node.toVec()
-        val delta = targetPos.subtract(player.entityPos)
-        val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
-
-        if (!isGrounded && !player.abilities.flying && node.type == MovementType.DROP) {
-            val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
-            if (distSq < 0.0025) return
-
-            MovementController.applyAirStrafe(player, targetPos, targetYaw)
-
-            RotationManager.setTarget(targetYaw, 0f)
-
-            InputController.sprint = false
-            return
-        }
-
-        RotationManager.setTarget(targetYaw, 0f)
-
-        if (!ConfigManager.data.freelook) {
-            player.yaw = targetYaw
-        }
-
-        MovementController.applyControls()
-
-        InputController.sprint = MovementController.shouldSprint(player, path)
-
-        if (node.type == MovementType.JUMP || (player.isTouchingWater && delta.y > 0)) {
-            InputController.jump = true
-        }
+        RotationManager.tick()
     }
 }

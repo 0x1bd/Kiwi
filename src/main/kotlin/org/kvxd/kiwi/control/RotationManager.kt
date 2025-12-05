@@ -1,5 +1,8 @@
 package org.kvxd.kiwi.control
 
+import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.player
+
 object RotationManager {
 
     var targetYaw: Float = 0f
@@ -14,5 +17,14 @@ object RotationManager {
         targetYaw = yaw
         targetPitch = pitch
         hasTarget = true
+    }
+
+    fun tick() {
+        if (!hasTarget) return
+
+        if (!ConfigManager.data.freelook) {
+            player.yaw = targetYaw
+            player.pitch = targetPitch
+        }
     }
 }
