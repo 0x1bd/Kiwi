@@ -5,27 +5,28 @@ import net.minecraft.util.math.Direction
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
-import org.kvxd.kiwi.pathing.move.MovementStrategy
+import org.kvxd.kiwi.pathing.move.AbstractMovement
 
-object JumpMovement : MovementStrategy {
+object JumpMovement : AbstractMovement(MovementType.JUMP) {
 
-    const val COST = 2.0
+    private const val COST = 2.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val start = current.pos
 
         if (CollisionCache.isSolid(start.up(2))) return
 
-        Direction.Type.HORIZONTAL.forEach { dir ->
-            val wall = start.offset(dir)
-
-            if (CollisionCache.isSolid(wall)) {
-                val dest = wall.up()
-
-                if (CollisionCache.isWalkable(dest)) {
-                    output += createNode(dest, current, target, MovementType.JUMP, COST)
-                }
-            }
+        for (dir in Direction.Type.HORIZONTAL) {
+            val dest = start.offset(dir).up()
+            addIfValid(current, target, dest, output)
         }
+    }
+
+    override fun getCost(current: Node, dest: BlockPos): Double {
+        if (!CollisionCache.isWalkable(dest)) return Double.POSITIVE_INFINITY
+
+        if (!CollisionCache.isSolid(dest.down())) return Double.POSITIVE_INFINITY
+
+        return COST
     }
 }

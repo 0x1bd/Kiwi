@@ -66,6 +66,6 @@ object MovementController {
         if (!isGrounded) return false
 
         val next = path.peek(1) ?: return false
-        return next.type.canSprint
+        return path.current()?.type?.canSprint == true && next.type.canSprint
     }
 }

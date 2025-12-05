@@ -1,60 +1,61 @@
 package org.kvxd.kiwi.control.input
 
+import kotlin.properties.Delegates
 import net.minecraft.client.input.KeyboardInput
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.player
 
 object InputOverride {
 
-    @JvmStatic
     var isActive: Boolean = false
-
-    @JvmStatic
-    var state: State = State()
+        private set
 
     class State {
+        var forward by flag()
+        var back by flag()
+        var left by flag()
+        var right by flag()
+        var jump by flag()
 
-        var forward: Boolean = false
-        var back: Boolean = false
-        var left: Boolean = false
-        var right: Boolean = false
-        var jump: Boolean = false
-        var sneak: Boolean = false
-            set(value) {
-                field = value
-                if (isActive)
-                    player.isSneaking = value
+        var sneak by flag {
+            player.isSneaking = it
+        }
+
+        var sprint by flag {
+            player.isSprinting = it
+        }
+
+        private fun flag(onChange: (Boolean) -> Unit = {}) =
+            Delegates.observable(false) { _, _, new ->
+                if (isActive) onChange(new)
             }
 
-        var sprint: Boolean = false
-            set(value) {
-                field = value
-                if (isActive)
-                    player.isSprinting = value
-            }
+        fun reset() {
+            forward = false
+            back = false
+            left = false
+            right = false
+            jump = false
+            sneak = false
+            sprint = false
+        }
     }
 
-    fun activate() {
-        reset()
+    val state = State()
 
+    fun activate() {
+        state.reset()
         player.input = KiwiInput()
 
         isActive = true
     }
 
     fun deactivate() {
-        reset()
-
+        state.reset()
         player.input = KeyboardInput(client.options)
+
+        isActive = false
     }
 
-    fun reset() {
-        state.forward = false
-        state.back = false
-        state.left = false
-        state.right = false
-        state.jump = false
-        state.sneak = false
-        state.sprint = false
-    }
+    fun reset() = state.reset()
 }

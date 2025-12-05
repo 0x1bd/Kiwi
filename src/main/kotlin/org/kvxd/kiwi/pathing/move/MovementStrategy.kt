@@ -15,3 +15,16 @@ interface MovementStrategy {
         return Node(pos, parent, g, h, type)
     }
 }
+
+abstract class AbstractMovement(private val type: MovementType) : MovementStrategy {
+
+    abstract fun getCost(current: Node, dest: BlockPos): Double
+
+    protected fun addIfValid(current: Node, target: BlockPos, dest: BlockPos, output: MutableList<Node>) {
+        val cost = getCost(current, dest)
+
+        if (cost != Double.POSITIVE_INFINITY) {
+            output.add(createNode(dest, current, target, type, cost))
+        }
+    }
+}

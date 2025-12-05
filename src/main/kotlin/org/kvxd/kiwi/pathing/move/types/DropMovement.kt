@@ -6,33 +6,40 @@ import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
-import org.kvxd.kiwi.pathing.move.MovementStrategy
+import org.kvxd.kiwi.pathing.move.AbstractMovement
 
-object DropMovement : MovementStrategy {
+object DropMovement : AbstractMovement(MovementType.DROP) {
 
-    const val BASE_COST = 1.5
+    private const val BASE_COST = 1.5
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val start = current.pos
 
-        Direction.Type.HORIZONTAL.forEach { dir ->
+        for (dir in Direction.Type.HORIZONTAL) {
             val ledge = start.offset(dir)
 
-            if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.up())) return@forEach
+            if (CollisionCache.isSolid(ledge)) continue
+            if (CollisionCache.isSolid(ledge.up())) continue
 
-            for (i in 1..ConfigManager.data.maxFallHeight) {
-                val land = ledge.down(i)
+            var currentDropPos = ledge
 
-                if (CollisionCache.isWalkable(land)) {
-                    val cost = BASE_COST + (i * 0.5)
-                    output += createNode(land, current, target, MovementType.DROP, cost)
+            val maxFall = ConfigManager.data.maxFallHeight
+            for (i in 1..maxFall) {
+                currentDropPos = currentDropPos.down()
+
+                if (CollisionCache.isSolid(currentDropPos)) {
                     break
                 }
 
-                if (CollisionCache.isSolid(land)) {
+                if (CollisionCache.isSolid(currentDropPos.down())) {
+                    val cost = BASE_COST + (i * 0.5)
+
+                    output.add(createNode(currentDropPos, current, target, MovementType.DROP, cost))
                     break
                 }
             }
         }
     }
+
+    override fun getCost(current: Node, dest: BlockPos): Double = Double.POSITIVE_INFINITY
 }

@@ -4,19 +4,22 @@ import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
-import org.kvxd.kiwi.pathing.move.MovementStrategy
+import org.kvxd.kiwi.pathing.move.AbstractMovement
 
-object PillarMovement : MovementStrategy {
+object PillarMovement : AbstractMovement(MovementType.PILLAR) {
 
-    const val COST = JumpMovement.COST + 4.0
+    private const val COST = 6.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val dest = current.pos.up()
 
-        if (!CollisionCache.isSolid(dest) &&
-            !CollisionCache.isSolid(dest.up())
-        ) {
-            output.add(createNode(dest, current, target, MovementType.PILLAR, COST))
-        }
+        addIfValid(current, target, dest, output)
+    }
+
+    override fun getCost(current: Node, dest: BlockPos): Double {
+        if (CollisionCache.isSolid(dest)) return Double.POSITIVE_INFINITY
+        if (CollisionCache.isSolid(dest.up())) return Double.POSITIVE_INFINITY
+
+        return COST
     }
 }
