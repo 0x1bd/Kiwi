@@ -2,6 +2,7 @@ package org.kvxd.kiwi.control
 
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
@@ -10,7 +11,8 @@ import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.PathProfiler
-import org.kvxd.kiwi.util.RotationUtils
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 object PathExecutor {
 
@@ -43,7 +45,7 @@ object PathExecutor {
 
         if (success) {
             path = result.path
-            InputController.active = true
+            InputOverride.activate()
             val first = path.current()
             val currentStart = client.player?.blockPos
             if (currentStart != null && first != null && first.pos == currentStart && path.size == 1) {
@@ -59,8 +61,7 @@ object PathExecutor {
         active = false
         path = NodePath(emptyList())
         currentGoal = null
-        InputController.active = false
-        InputController.reset()
+        InputOverride.deactivate()
         RotationManager.reset()
     }
 
@@ -68,7 +69,7 @@ object PathExecutor {
         val goal = currentGoal ?: return
         if (goal.hasReached(player.blockPos)) {
             stop()
-            ClientMessenger.feedback("Goal reached!")
+            ClientMessenger.debug("Goal reached!")
         } else {
             repath()
         }
@@ -77,12 +78,9 @@ object PathExecutor {
     fun tick() {
         if (!active || client.player == null) return
 
-        if (calculating) {
-            InputController.reset()
-            return
-        }
+        InputOverride.reset()
 
-        if (path.isEmpty) {
+        if (path.isEmpty || calculating) {
             repath()
             return
         }
@@ -95,29 +93,46 @@ object PathExecutor {
             return
         }
 
-        val currNode = path.current() ?: run {
+        var currNode = path.current() ?: run {
             finishCheck()
             return
         }
 
-        val executor = currNode.type.executor
+        var executor = currNode.type.executor
+
+        if (path.reachedCurrent(player.blockPos)) {
+            if (executor.isFinished(currNode)) {
+                if (path.advance()) {
+                    currNode = path.current()!!
+                    executor = currNode.type.executor
+                } else {
+                    finishCheck()
+                    return
+                }
+            }
+        }
 
         val targetPos = currNode.toVec()
-        val distSqXZ = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
+        val dx = abs(player.x - targetPos.x)
+        val dz = abs(player.z - targetPos.z)
+        val distSqXZ = dx * dx + dz * dz
 
-        if (distSqXZ > executor.deviationThreshold ||
-            player.y < targetPos.y - ConfigManager.data.verticalDeviationThreshold
-        ) {
-            ClientMessenger.debug("Deviated. Repathing...")
+        val threshold = executor.deviationThreshold
+        val maxDistSq = threshold * threshold
+
+        val dy = player.y - targetPos.y
+        if (dy < -ConfigManager.data.verticalDeviationThreshold) {
+            ClientMessenger.debug("Deviated Y (Fallen ${String.format("%.2f", abs(dy))}m). Repathing...")
             repath()
             return
         }
 
-        if (path.reachedCurrent(player.blockPos)) {
-            if (executor.isFinished(currNode)) {
-                if (!path.advance()) finishCheck()
-                return
-            }
+        if (distSqXZ > maxDistSq) {
+            val axis = if (dx > dz) "X" else "Z"
+            val dist = sqrt(distSqXZ)
+            ClientMessenger.debug("Deviated $axis (Dist: ${String.format("%.2f", dist)} > $threshold). Repathing...")
+            repath()
+            return
         }
 
         executor.execute(currNode, path)

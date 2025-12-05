@@ -1,8 +1,8 @@
 package org.kvxd.kiwi.pathing.execute.types
 
-import org.kvxd.kiwi.control.InputController
 import org.kvxd.kiwi.control.MovementController
 import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
@@ -20,13 +20,13 @@ object StandardExecutor : MovementExecutor {
 
         RotationManager.setTarget(targetYaw, player.pitch)
 
-        MovementController.applyControls()
+        MovementController.forward()
 
-        InputController.sprint = MovementController.shouldSprint(player, path)
+        InputOverride.state.sprint = MovementController.shouldSprint(player, path)
 
         val deltaY = targetPos.y - player.y
         if (node.type == MovementType.JUMP || (player.isTouchingWater && deltaY > 0)) {
-            InputController.jump = true
+            InputOverride.state.jump = true
         }
     }
 }

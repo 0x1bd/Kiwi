@@ -2,10 +2,10 @@ package org.kvxd.kiwi.pathing.execute.types
 
 import net.minecraft.item.BlockItem
 import net.minecraft.util.math.Vec3d
-import org.kvxd.kiwi.control.InputController
 import org.kvxd.kiwi.control.MovementController
 import org.kvxd.kiwi.control.PathExecutor
 import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
@@ -50,7 +50,7 @@ object PillarExecutor : MovementExecutor {
         } else {
             val safeVelocity = 0.1
             if (abs(player.velocity.x) < safeVelocity && abs(player.velocity.z) < safeVelocity) {
-                InputController.jump = true
+                InputOverride.state.jump = true
             }
         }
     }

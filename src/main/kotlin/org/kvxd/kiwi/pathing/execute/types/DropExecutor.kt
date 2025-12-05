@@ -1,9 +1,9 @@
 package org.kvxd.kiwi.pathing.execute.types
 
 import org.kvxd.kiwi.client
-import org.kvxd.kiwi.control.InputController
 import org.kvxd.kiwi.control.MovementController
 import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.execute.MovementExecutor
@@ -29,6 +29,6 @@ object DropExecutor : MovementExecutor {
         MovementController.applyAirStrafe(player, targetPos, targetYaw)
 
         RotationManager.setTarget(targetYaw, 0f)
-        InputController.sprint = false
+        InputOverride.state.sprint = false
     }
 }
