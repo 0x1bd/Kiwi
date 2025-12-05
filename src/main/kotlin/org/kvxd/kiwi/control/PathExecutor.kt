@@ -3,6 +3,7 @@ package org.kvxd.kiwi.control
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.control.input.InputOverride
+import org.kvxd.kiwi.control.movement.mergeActionResult
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
@@ -136,7 +137,9 @@ object PathExecutor {
             return
         }
 
-        executor.execute(currNode, path)
+        mergeActionResult(executor.execute(currNode, path)).forEach { action ->
+            action.execute()
+        }
 
         RotationManager.tick()
     }

@@ -1,9 +1,10 @@
 package org.kvxd.kiwi.pathing.execute.types
 
-import org.kvxd.kiwi.client
-import org.kvxd.kiwi.control.MovementController
-import org.kvxd.kiwi.control.RotationManager
-import org.kvxd.kiwi.control.input.InputOverride
+import org.kvxd.kiwi.control.InputHelper
+import org.kvxd.kiwi.control.movement.ActionResult
+import org.kvxd.kiwi.control.movement.actionResult
+import org.kvxd.kiwi.control.movement.impl.Input
+import org.kvxd.kiwi.control.movement.impl.Rotate
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.execute.MovementExecutor
@@ -14,21 +15,29 @@ object DropExecutor : MovementExecutor {
 
     override fun isFinished(node: Node): Boolean = true
 
-    override fun execute(node: Node, path: NodePath) {
+    override fun execute(node: Node, path: NodePath): ActionResult {
+        val result = actionResult()
         val targetPos = node.toVec()
 
         if (player.isOnGround || player.isTouchingWater) {
-            StandardExecutor.execute(node, path)
-            return
+            return StandardExecutor.execute(node, path)
         }
 
         val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, targetPos)
-        if (distSq < 0.0025) return
+        if (distSq < 0.0025) {
+            return result
+        }
 
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
-        MovementController.applyAirStrafe(player, targetPos, targetYaw)
 
-        RotationManager.setTarget(yaw = targetYaw)
-        InputOverride.state.sprint = false
+        result += Rotate(yaw = targetYaw)
+        result += Input(
+            forward = true,
+            sprint = false
+        )
+
+        result += InputHelper.airStrafe(targetPos, targetYaw)
+
+        return result
     }
 }
