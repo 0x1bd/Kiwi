@@ -29,34 +29,25 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
         super(world, profile);
     }
 
-    // --- PHYSICS & MOVEMENT (Swap to Target) ---
     @Inject(method = "tickMovement", at = @At("HEAD"))
     private void onTickMovementHead(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
             this.storedYaw = this.getYaw();
             this.storedPitch = this.getPitch();
 
-            // Set rotation to Target for physics/movement calculation
             this.setYaw(MathHelper.wrapDegrees(RotationManager.INSTANCE.getTargetYaw()));
             this.setPitch(RotationManager.INSTANCE.getTargetPitch());
 
-            // Sync head/body to target so physics calculations (like strafing) work correctly
             this.setHeadYaw(this.getYaw());
             this.setBodyYaw(this.getYaw());
         }
     }
 
-    // --- RESTORE CAMERA & FIX HAND (Swap back to Camera) ---
     @Inject(method = "tickMovement", at = @At("RETURN"))
     private void onTickMovementReturn(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
-            // 1. Restore the main rotation so the Camera looks where the user wants
             this.setYaw(this.storedYaw);
             this.setPitch(this.storedPitch);
-
-            // 2. FORCE the "Previous" variables to match the Camera.
-            // In 1.21, 'prevYaw' is 'lastYaw'.
-            // 'renderYaw' and 'lastRenderYaw' control the smooth client-side rotation (hand).
 
             this.lastYaw = this.storedYaw;
             this.lastPitch = this.storedPitch;
@@ -67,15 +58,11 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
             this.renderPitch = this.storedPitch;
             this.lastRenderPitch = this.storedPitch;
 
-            // 3. Reset Body/Head Yaw to camera.
-            // If we don't do this, the First Person hand might be offset to the side
-            // because the body is twisted towards the target.
             this.setBodyYaw(this.storedYaw);
             this.setHeadYaw(this.storedYaw);
         }
     }
 
-    // --- PACKETS (Send Target to Server) ---
     @Inject(method = "sendMovementPackets", at = @At("HEAD"))
     private void onSendMovementPacketsHead(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
