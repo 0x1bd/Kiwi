@@ -6,6 +6,9 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.CactusBlock
 import net.minecraft.block.CampfireBlock
 import net.minecraft.block.MagmaBlock
+import net.minecraft.block.PowderSnowBlock
+import net.minecraft.block.SweetBerryBushBlock
+import net.minecraft.block.WitherRoseBlock
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.world
@@ -66,6 +69,9 @@ object CollisionCache {
             || block is MagmaBlock
             || block is CactusBlock
             || block is CampfireBlock
+            || block is SweetBerryBushBlock
+            || block is WitherRoseBlock
+            || block is PowderSnowBlock
         ) return DANGER
 
         if (state.getCollisionShape(world, pos).isEmpty) return PASSABLE
