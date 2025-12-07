@@ -4,13 +4,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import org.kvxd.kiwi.command.impl.ConfigCommand
 import org.kvxd.kiwi.command.impl.DebugCommand
-import org.kvxd.kiwi.command.impl.GotoCommand
+import org.kvxd.kiwi.command.impl.GoalCommand
 import org.kvxd.kiwi.command.impl.StopCommand
 
 object CommandRegistry {
 
     private val commands = listOf(
-        GotoCommand,
+        GoalCommand,
         DebugCommand,
         StopCommand,
         ConfigCommand
