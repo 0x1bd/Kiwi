@@ -15,27 +15,27 @@ object DiagonalMovement : AbstractMovement(MovementType.DIAGONAL) {
     )
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
-        val start = current.pos
+        val pos = current.pos
 
         for ((dx, dz) in OFFSETS) {
-            val dest = start.add(dx, 0, dz)
-            addIfValid(current, target, dest, output)
+            val dest = current.pos.add(dx, 0, dz)
+
+            if (!CollisionCache.isWalkable(dest)) continue
+
+            if (CollisionCache.isSolid(pos.x + dx, pos.y, pos.z) || CollisionCache.isSolid(
+                    pos.x + dx,
+                    pos.y + 1,
+                    pos.z
+                )
+            ) continue
+            if (CollisionCache.isSolid(pos.x, pos.y, pos.z + dz) || CollisionCache.isSolid(
+                    pos.x,
+                    pos.y + 1,
+                    pos.z + dz
+                )
+            ) continue
+
+            output.append(dest, current, target, COST)
         }
-    }
-
-    override fun getCost(current: Node, dest: BlockPos): Double {
-        if (!CollisionCache.isWalkable(dest)) return Double.POSITIVE_INFINITY
-
-        if (CollisionCache.isSolid(current.pos.x, current.pos.y, dest.z) ||
-            CollisionCache.isSolid(current.pos.x, current.pos.y + 1, dest.z)) {
-            return Double.POSITIVE_INFINITY
-        }
-
-        if (CollisionCache.isSolid(dest.x, current.pos.y, current.pos.z) ||
-            CollisionCache.isSolid(dest.x, current.pos.y + 1, current.pos.z)) {
-            return Double.POSITIVE_INFINITY
-        }
-
-        return COST
     }
 }

@@ -12,17 +12,12 @@ object PillarMovement : AbstractMovement(MovementType.PILLAR) {
     private const val COST = 6.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
+        if (!ConfigManager.data.allowPillar) return
+
         val dest = current.pos.up()
 
-        addIfValid(current, target, dest, output)
-    }
-
-    override fun getCost(current: Node, dest: BlockPos): Double {
-        if (!ConfigManager.data.allowPillar) return Double.POSITIVE_INFINITY
-
-        if (CollisionCache.isSolid(dest)) return Double.POSITIVE_INFINITY
-        if (CollisionCache.isSolid(dest.up())) return Double.POSITIVE_INFINITY
-
-        return COST
+        if (!CollisionCache.isSolid(dest) && !CollisionCache.isSolid(dest.up())) {
+            output.append(dest, current, target, COST)
+        }
     }
 }

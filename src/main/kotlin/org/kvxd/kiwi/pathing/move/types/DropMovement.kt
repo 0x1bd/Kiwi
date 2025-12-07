@@ -18,28 +18,22 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
         for (dir in Direction.Type.HORIZONTAL) {
             val ledge = start.offset(dir)
 
-            if (CollisionCache.isSolid(ledge)) continue
-            if (CollisionCache.isSolid(ledge.up())) continue
+            if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.up())) continue
 
             var currentDropPos = ledge
-
             val maxFall = ConfigManager.data.maxFallHeight
+
             for (i in 1..maxFall) {
                 currentDropPos = currentDropPos.down()
 
-                if (CollisionCache.isSolid(currentDropPos)) {
-                    break
-                }
+                if (CollisionCache.isSolid(currentDropPos)) break
 
                 if (CollisionCache.isSolid(currentDropPos.down())) {
                     val cost = BASE_COST + (i * 0.5)
-
-                    output.add(createNode(currentDropPos, current, target, MovementType.DROP, cost))
+                    output.append(currentDropPos, current, target, cost)
                     break
                 }
             }
         }
     }
-
-    override fun getCost(current: Node, dest: BlockPos): Double = Double.POSITIVE_INFINITY
 }

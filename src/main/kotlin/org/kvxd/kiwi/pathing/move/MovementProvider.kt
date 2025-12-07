@@ -19,8 +19,8 @@ object MovementProvider {
     )
 
     fun getNeighbors(current: Node, target: BlockPos, buffer: MutableList<Node>) {
-        for (i in STRATEGIES.indices) {
-            STRATEGIES[i].getNeighbors(current, target, buffer)
+        for (strategy in STRATEGIES) {
+            strategy.getNeighbors(current, target, buffer)
         }
     }
 }

@@ -12,21 +12,14 @@ object JumpMovement : AbstractMovement(MovementType.JUMP) {
     private const val COST = 2.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
-        val start = current.pos
-
-        if (CollisionCache.isSolid(start.up(2))) return
+        if (CollisionCache.isSolid(current.pos.up(2))) return
 
         for (dir in Direction.Type.HORIZONTAL) {
-            val dest = start.offset(dir).up()
-            addIfValid(current, target, dest, output)
+            val dest = current.pos.offset(dir).up()
+
+            if (CollisionCache.isWalkable(dest) && CollisionCache.isSolid(dest.down())) {
+                output.append(dest, current, target, COST)
+            }
         }
-    }
-
-    override fun getCost(current: Node, dest: BlockPos): Double {
-        if (!CollisionCache.isWalkable(dest)) return Double.POSITIVE_INFINITY
-
-        if (!CollisionCache.isSolid(dest.down())) return Double.POSITIVE_INFINITY
-
-        return COST
     }
 }

@@ -39,7 +39,7 @@ class AStar {
 
         val maxOps = ConfigManager.data.maxIterations
 
-        var finalPath: NodePath? = null
+        var finalPath: NodePath?
         var found = false
 
         while (!openSet.isEmpty()) {

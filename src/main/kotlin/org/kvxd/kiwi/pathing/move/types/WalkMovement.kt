@@ -12,19 +12,12 @@ object WalkMovement : AbstractMovement(MovementType.WALK) {
     private const val COST = 1.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
-        val start = current.pos
-
         for (dir in Direction.Type.HORIZONTAL) {
-            val dest = start.offset(dir)
-            addIfValid(current, target, dest, output)
-        }
-    }
+            val dest = current.pos.offset(dir)
 
-    override fun getCost(current: Node, dest: BlockPos): Double {
-        if (CollisionCache.isWalkable(dest)) {
-            return COST
+            if (CollisionCache.isWalkable(dest)) {
+                output.append(dest, current, target, COST)
+            }
         }
-
-        return Double.POSITIVE_INFINITY
     }
 }
