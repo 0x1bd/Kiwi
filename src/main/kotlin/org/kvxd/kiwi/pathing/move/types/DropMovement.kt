@@ -26,7 +26,7 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
             for (i in 1..maxFall) {
                 currentDropPos = currentDropPos.down()
 
-                if (CollisionCache.isSolid(currentDropPos)) break
+                if (!CollisionCache.isPassable(currentDropPos)) break
 
                 if (CollisionCache.isSolid(currentDropPos.down())) {
                     val cost = BASE_COST + (i * 0.5)

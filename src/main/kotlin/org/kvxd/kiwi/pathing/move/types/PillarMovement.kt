@@ -16,7 +16,7 @@ object PillarMovement : AbstractMovement(MovementType.PILLAR) {
 
         val dest = current.pos.up()
 
-        if (!CollisionCache.isSolid(dest) && !CollisionCache.isSolid(dest.up())) {
+        if (CollisionCache.isPassable(dest) && CollisionCache.isPassable(dest.up())) {
             output.append(dest, current, target, COST)
         }
     }

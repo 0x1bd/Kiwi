@@ -1,52 +1,75 @@
 package org.kvxd.kiwi.pathing.cache
 
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
+import net.minecraft.block.AbstractFireBlock
+import net.minecraft.block.BlockState
+import net.minecraft.block.CactusBlock
+import net.minecraft.block.CampfireBlock
+import net.minecraft.block.MagmaBlock
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.world
 
 object CollisionCache {
 
+    private const val UNCACHED: Byte = -1
+    private const val PASSABLE: Byte = 0
+    private const val SOLID: Byte = 1
+    private const val WATER: Byte = 2
+    private const val LAVA: Byte = 3
+    private const val DANGER: Byte = 4
+
     private val cache = ThreadLocal.withInitial {
-        Long2ByteOpenHashMap(4096).apply {
-            defaultReturnValue(-1)
-        }
+        Long2ByteOpenHashMap(8192).apply { defaultReturnValue(UNCACHED) }
     }
 
-    fun clearCache() {
-        cache.get().clear()
+    fun clearCache() = cache.get().clear()
+
+    fun isPassable(pos: BlockPos): Boolean {
+        return resolve(pos.x, pos.y, pos.z) == PASSABLE
     }
 
-    inline fun isWalkable(pos: BlockPos): Boolean {
-        val x = pos.x
-        val y = pos.y
+    fun isSolid(pos: BlockPos): Boolean = resolve(pos.x, pos.y, pos.z) == SOLID
+
+    fun isSolid(x: Int, y: Int, z: Int): Boolean = resolve(x, y, z) == SOLID
+
+    fun isWalkable(pos: BlockPos): Boolean {
+        val x = pos.x;
+        val y = pos.y;
         val z = pos.z
-
-        return !isSolid(x, y, z) &&
-                !isSolid(x, y + 1, z) &&
-                isSolid(x, y - 1, z)
+        return resolve(x, y, z) == PASSABLE &&
+                resolve(x, y + 1, z) == PASSABLE &&
+                resolve(x, y - 1, z) == SOLID
     }
 
-    fun isSolid(x: Int, y: Int, z: Int): Boolean {
+    private fun resolve(x: Int, y: Int, z: Int): Byte {
         val key = BlockPos.asLong(x, y, z)
         val map = cache.get()
-
         val cached = map.get(key)
-        if (cached != (-1).toByte()) {
-            return cached == 1.toByte()
-        }
+        if (cached != UNCACHED) return cached
 
         val pos = BlockPos(x, y, z)
         val state = world.getBlockState(pos)
-
-        val solid = if (!state.getCollisionShape(world, pos).isEmpty)
-            1.toByte()
-        else
-            0.toByte()
-
-        map.put(key, solid)
-        return solid == 1.toByte()
+        val computed = computeState(state, pos)
+        map.put(key, computed)
+        return computed
     }
 
-    fun isSolid(pos: BlockPos): Boolean =
-        isSolid(pos.x, pos.y, pos.z)
+    private fun computeState(state: BlockState, pos: BlockPos): Byte {
+        if (!state.fluidState.isEmpty) {
+            if (state.fluidState.isIn(FluidTags.LAVA)) return LAVA
+            if (state.fluidState.isIn(FluidTags.WATER)) return WATER
+        }
+
+        val block = state.block
+        if (block is AbstractFireBlock
+            || block is MagmaBlock
+            || block is CactusBlock
+            || block is CampfireBlock
+        ) return DANGER
+
+        if (state.getCollisionShape(world, pos).isEmpty) return PASSABLE
+
+        return SOLID
+    }
 }
