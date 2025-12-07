@@ -9,12 +9,10 @@ import org.kvxd.kiwi.pathing.move.MovementProvider
 
 class AStar {
 
-    private val nodeRegistry = HashMap<Long, Node>(8192)
+    private val nodeRegistry = HashMap<Long, Node>(16384)
     private val openSet = MinHeap()
-
-    private val closedSet = HashSet<Long>(8192)
-
-    private val neighborBuffer = ArrayList<Node>(32)
+    private val closedSet = HashSet<Long>(16384)
+    private val neighborBuffer = ArrayList<Node>(64)
 
     fun calculate(start: BlockPos, goal: Goal): PathResult {
         val startTime = System.nanoTime()
@@ -99,9 +97,7 @@ class AStar {
 
         val pathSize = finalPath.size
 
-        val isValid = found ||
-                (iterations > maxOps && pathSize > 1) ||
-                (pathSize > 1)
+        val isValid = found || (iterations >= maxOps && pathSize > 1)
 
         return PathResult(
             path = if (isValid) finalPath else null,

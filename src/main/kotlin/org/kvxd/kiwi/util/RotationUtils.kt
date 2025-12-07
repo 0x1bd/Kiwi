@@ -1,12 +1,19 @@
 package org.kvxd.kiwi.util
 
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
+import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.player
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 object RotationUtils {
 
@@ -42,5 +49,60 @@ object RotationUtils {
         if (a >= 180f) a -= 360f
         if (a < -180f) a += 360f
         return a
+    }
+
+    fun getLookRotations(target: Vec3d): Vec2f {
+        val eyePos = player.eyePos
+
+        val dx = target.x - eyePos.x
+        val dy = target.y - eyePos.y
+        val dz = target.z - eyePos.z
+
+        val distXZ = sqrt(dx * dx + dz * dz)
+
+        val yaw = MathHelper.wrapDegrees((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
+        val pitch = MathHelper.wrapDegrees((-atan2(dy, distXZ) * 180.0 / PI).toFloat())
+
+        return Vec2f(yaw, pitch)
+    }
+
+    fun isLookingAt(target: Vec3d, threshold: Double): Boolean {
+        val yaw = if (ConfigManager.data.freelook)
+            RotationManager.targetYaw else player.yaw
+
+        val pitch = if (ConfigManager.data.freelook)
+            RotationManager.targetPitch else player.pitch
+
+        val desired = getLookRotations(target)
+        val yawDiff = abs(normalize(desired.x - yaw))
+        val pitchDiff = abs(normalize(desired.y - pitch))
+
+        return yawDiff < threshold && pitchDiff < threshold
+    }
+
+    fun getDirection(blockPos: BlockPos): Direction {
+        val eye = player.eyePos
+        val center = Vec3d.ofCenter(blockPos)
+
+        val look = Vec3d(
+            center.x - eye.x,
+            center.y - eye.y,
+            center.z - eye.z
+        )
+
+        val absX = abs(look.x)
+        val absY = abs(look.y)
+        val absZ = abs(look.z)
+
+        return when {
+            absY >= absX && absY >= absZ ->
+                if (look.y > 0) Direction.UP else Direction.DOWN
+
+            absX >= absZ ->
+                if (look.x > 0) Direction.EAST else Direction.WEST
+
+            else ->
+                if (look.z > 0) Direction.SOUTH else Direction.NORTH
+        }
     }
 }

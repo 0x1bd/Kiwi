@@ -5,6 +5,7 @@ import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.move.types.DiagonalMovement
 import org.kvxd.kiwi.pathing.move.types.DropMovement
 import org.kvxd.kiwi.pathing.move.types.JumpMovement
+import org.kvxd.kiwi.pathing.move.types.MineMovement
 import org.kvxd.kiwi.pathing.move.types.PillarMovement
 import org.kvxd.kiwi.pathing.move.types.WalkMovement
 
@@ -15,7 +16,8 @@ object MovementProvider {
         DiagonalMovement,
         JumpMovement,
         DropMovement,
-        PillarMovement
+        PillarMovement,
+        MineMovement
     )
 
     fun getNeighbors(current: Node, target: BlockPos, buffer: MutableList<Node>) {

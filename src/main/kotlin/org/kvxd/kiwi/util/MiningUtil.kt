@@ -5,6 +5,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.item.ItemStack
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
@@ -13,6 +14,30 @@ import org.kvxd.kiwi.world
 import kotlin.math.ceil
 
 object MiningUtil {
+
+    fun selectBestTool(state: BlockState) {
+        val bestSlot = InventoryUtil.findBestSlot { stack ->
+            getToolScore(stack, state)
+        }
+
+        if (bestSlot != -1) {
+            InventoryUtil.selectSlot(bestSlot)
+        }
+    }
+
+    private fun getToolScore(stack: ItemStack, state: BlockState): Float {
+        if (stack.isEmpty) return 1.0f
+        var speed = stack.getMiningSpeedMultiplier(state)
+        if (speed > 1.0f) {
+            val efficiency = EnchantmentHelper.getLevel(
+                world.registryManager.getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY),
+                stack
+            )
+
+            speed += efficiency * efficiency + 1
+        }
+        return speed
+    }
 
     fun getBreakTime(pos: BlockPos): Double {
         val state = world.getBlockState(pos)

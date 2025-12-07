@@ -15,6 +15,7 @@ object PathRenderer {
     private val COLOR_DROP = Color.RED
     private val COLOR_DIAGONAL = Color.CYAN
     private val COLOR_PILLAR = Color.ORANGE
+    private val COLOR_MINE = Color.PINK
 
     private val COLOR_DEST = Color.MAGENTA
 
@@ -43,6 +44,7 @@ object PathRenderer {
                         MovementType.DROP -> COLOR_DROP
                         MovementType.DIAGONAL -> COLOR_DIAGONAL
                         MovementType.PILLAR -> COLOR_PILLAR
+                        MovementType.MINE -> COLOR_MINE
                     }
 
                     drawLine(

@@ -5,6 +5,8 @@ import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.cache.CollisionCache
+import org.kvxd.kiwi.pathing.calc.MovementType
+import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
 import org.kvxd.kiwi.pathing.calc.RepathThread
@@ -83,7 +85,7 @@ object PathExecutor {
 
         val targetPos = currNode.toVec()
         if (checkDeviation(targetPos, executor.deviationThreshold)) return
-        if (checkStuck()) return
+        if (checkStuck(currNode)) return
 
         executor.execute(currNode, path)
         RotationManager.tick()
@@ -107,8 +109,9 @@ object PathExecutor {
         return false
     }
 
-    private fun checkStuck(): Boolean {
+    private fun checkStuck(currentNode: Node): Boolean {
         if (!player.isOnGround && !player.isTouchingWater) return false
+        if (currentNode.type == MovementType.MINE) return false
 
         val currentPos = player.entityPos
         if (currentPos.squaredDistanceTo(lastPos) < STUCK_DISTANCE_SQ) {
@@ -119,7 +122,7 @@ object PathExecutor {
         }
 
         if (stuckTicks > STUCK_THRESHOLD_TICKS) {
-            ClientMessenger.debug("Stuck detected (20 ticks). Repathing...")
+            ClientMessenger.debug("Stuck detected. Repathing...")
             stuckTicks = 0
             repath()
             return true

@@ -22,5 +22,6 @@ data class ConfigData(
     var freelook: Boolean = true,
 
     var allowPillar: Boolean = true,
-    var allowWater: Boolean = false
+    var allowWater: Boolean = false,
+    var allowBreak: Boolean = true
 )

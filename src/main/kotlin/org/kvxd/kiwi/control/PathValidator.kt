@@ -17,6 +17,8 @@ object PathValidator {
             // so we skip the first node
             if (i == 0) continue
 
+            if (node.type == MovementType.MINE) continue
+
             if (CollisionCache.isSolid(node.pos) || CollisionCache.isSolid(node.pos.up())) {
                 return true
             }
