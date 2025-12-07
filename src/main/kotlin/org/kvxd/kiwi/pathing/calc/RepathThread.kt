@@ -18,8 +18,6 @@ class RepathThread(
 
         CollisionCache.clearCache()
 
-        client.execute {
-            onComplete(result)
-        }
+        onComplete(result)
     }
 }
