@@ -5,7 +5,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import org.kvxd.kiwi.config.ConfigManager;
+import org.kvxd.kiwi.config.ConfigData;
 import org.kvxd.kiwi.control.RotationManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,13 +17,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientPlayerEntity.class)
 public abstract class MixinClientPlayerEntity extends PlayerEntity {
 
-    @Shadow public float renderYaw;
-    @Shadow public float lastRenderYaw;
-    @Shadow public float renderPitch;
-    @Shadow public float lastRenderPitch;
+    @Shadow
+    public float renderYaw;
+    @Shadow
+    public float lastRenderYaw;
+    @Shadow
+    public float renderPitch;
+    @Shadow
+    public float lastRenderPitch;
 
-    @Unique private float storedYaw;
-    @Unique private float storedPitch;
+    @Unique
+    private float storedYaw;
+    @Unique
+    private float storedPitch;
 
     public MixinClientPlayerEntity(World world, GameProfile profile) {
         super(world, profile);
@@ -31,7 +37,7 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
 
     @Inject(method = "tickMovement", at = @At("HEAD"))
     private void onTickMovementHead(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
+        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYaw();
             this.storedPitch = this.getPitch();
 
@@ -45,7 +51,7 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
 
     @Inject(method = "tickMovement", at = @At("RETURN"))
     private void onTickMovementReturn(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
+        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYaw(this.storedYaw);
             this.setPitch(this.storedPitch);
 
@@ -65,7 +71,7 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
 
     @Inject(method = "sendMovementPackets", at = @At("HEAD"))
     private void onSendMovementPacketsHead(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
+        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYaw();
             this.storedPitch = this.getPitch();
 
@@ -76,7 +82,7 @@ public abstract class MixinClientPlayerEntity extends PlayerEntity {
 
     @Inject(method = "sendMovementPackets", at = @At("RETURN"))
     private void onSendMovementPacketsReturn(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigManager.INSTANCE.getData().getFreelook()) {
+        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYaw(this.storedYaw);
             this.setPitch(this.storedPitch);
         }

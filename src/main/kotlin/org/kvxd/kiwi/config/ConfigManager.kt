@@ -1,55 +1,47 @@
 package org.kvxd.kiwi.config
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import net.fabricmc.loader.api.FabricLoader
 import org.kvxd.kiwi.Kiwi
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
 object ConfigManager {
 
-    private val configDir = FabricLoader.getInstance().configDir
-    private val configFile = configDir.resolve("${Kiwi.MOD_ID}.json")
+    private val file = FabricLoader.getInstance().configDir.resolve("${Kiwi.MOD_ID}.json")
 
     private val json = Json {
-        prettyPrint = true
-        ignoreUnknownKeys = true
         encodeDefaults = true
+        prettyPrint = true
     }
 
-    var data: ConfigData = ConfigData()
-        private set
+    init {
+        @Suppress("UNUSED_EXPRESSION")
+        // statically load the config so that we can access all variables later
+        ConfigData
+    }
 
     fun load() {
-        if (!configFile.exists()) {
-            save()
-            return
-        }
 
-        try {
-            val content = configFile.readText()
-            data = json.decodeFromString<ConfigData>(content)
-            Kiwi.logger.info("Config loaded.")
-        } catch (e: Exception) {
-            Kiwi.logger.warn("Failed to load config, using defaults: ${e.message}")
-            e.printStackTrace()
+        if (!file.exists()) return save()
 
-            val backup = configDir.resolve("${Kiwi.MOD_ID}.json.bak")
-            Files.copy(configFile, backup, StandardCopyOption.REPLACE_EXISTING)
-            data = ConfigData()
+        val obj = json.decodeFromString(JsonObject.serializer(), file.readText())
+
+        for ((key, entry) in ConfigRegistry.getEntries()) {
+            obj[key]?.let { entry.deserialize(it) }
         }
     }
 
     fun save() {
-        try {
-            val content = json.encodeToString(data)
-            configFile.writeText(content)
-        } catch (e: Exception) {
-            Kiwi.logger.warn("Failed to save config: ${e.message}")
+        val root = buildJsonObject {
+            for ((key, entry) in ConfigRegistry.getEntries()) {
+                put(key, entry.serialize())
+            }
         }
-    }
 
+        file.writeText(json.encodeToString(JsonObject.serializer(), root))
+    }
 }

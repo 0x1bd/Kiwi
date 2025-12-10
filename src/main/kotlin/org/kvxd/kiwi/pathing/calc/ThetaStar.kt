@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.calc
 
 import net.minecraft.util.math.BlockPos
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.pathing.goal.Goal
@@ -36,7 +36,7 @@ class ThetaStar {
         var iterations = 0
         var nodesVisited = 0
 
-        val maxOps = ConfigManager.data.maxIterations
+        val maxOps = ConfigData.maxIterations
 
         var finalPath: NodePath?
         var found = false
@@ -90,7 +90,8 @@ class ThetaStar {
 
                 var finalType = neighborNode.type
                 if (potentialParent != null &&
-                    (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP)) {
+                    (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP)
+                ) {
 
                     if (neighborNode.pos.y > potentialParent.pos.y) {
                         finalType = MovementType.JUMP

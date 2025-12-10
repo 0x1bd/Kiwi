@@ -5,7 +5,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.RotationManager
 import org.kvxd.kiwi.player
 import kotlin.math.PI
@@ -67,10 +67,10 @@ object RotationUtils {
     }
 
     fun isLookingAt(target: Vec3d, threshold: Double): Boolean {
-        val yaw = if (ConfigManager.data.freelook)
+        val yaw = if (ConfigData.freelook)
             RotationManager.targetYaw else player.yaw
 
-        val pitch = if (ConfigManager.data.freelook)
+        val pitch = if (ConfigData.freelook)
             RotationManager.targetPitch else player.pitch
 
         val desired = getLookRotations(target)

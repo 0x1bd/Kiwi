@@ -2,7 +2,7 @@ package org.kvxd.kiwi.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
@@ -21,7 +21,7 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
             if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.up())) continue
 
             var currentDropPos = ledge
-            val maxFall = ConfigManager.data.maxFallHeight
+            val maxFall = ConfigData.maxFallHeight
 
             for (i in 1..maxFall) {
                 currentDropPos = currentDropPos.down()

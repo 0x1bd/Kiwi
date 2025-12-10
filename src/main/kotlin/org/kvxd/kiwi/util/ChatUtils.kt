@@ -4,10 +4,10 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.player
 
-private val PREFIX: Text = Text.literal("Kiwi: ").formatted(Formatting.GRAY)
+val PREFIX: Text = Text.literal("Kiwi: ").formatted(Formatting.GREEN)
 
 class MessageBuilder {
 
@@ -60,7 +60,7 @@ object ClientMessenger {
     }
 
     fun debug(msg: String) {
-        if (ConfigManager.data.debugMode)
+        if (ConfigData.debugMode)
             send { text(msg, Formatting.YELLOW) }
     }
 

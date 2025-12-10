@@ -3,12 +3,11 @@ package org.kvxd.kiwi.render
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
-import org.kvxd.kiwi.client
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.PathExecutor
 import org.kvxd.kiwi.pathing.calc.MovementType
-import org.kvxd.kiwi.render.util.Renderer3D
 import org.kvxd.kiwi.render.util.RenderScope
+import org.kvxd.kiwi.render.util.Renderer3D
 import java.awt.Color
 
 object PathRenderer {
@@ -29,7 +28,7 @@ object PathRenderer {
                 val path = PathExecutor.path
 
                 if (path.isEmpty || path.isFinished) return@render
-                if (!ConfigManager.data.renderPath) return@render
+                if (!ConfigData.renderPath) return@render
 
                 depthTest(false)
 

@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.control
 
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.RotationUtils
@@ -29,14 +29,14 @@ object RotationManager {
 
     fun tick() {
         if (!hasTarget) {
-            if (InputOverride.isActive && !ConfigManager.data.freelook) {
+            if (InputOverride.isActive && !ConfigData.freelook) {
                 player.pitch = 0f
             }
 
             return
         }
 
-        if (!ConfigManager.data.freelook) {
+        if (!ConfigData.freelook) {
             player.yaw = targetYaw
             player.pitch = targetPitch
         }

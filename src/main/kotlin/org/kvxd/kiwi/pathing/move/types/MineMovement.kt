@@ -2,7 +2,7 @@ package org.kvxd.kiwi.pathing.move.types
 
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import org.kvxd.kiwi.config.ConfigManager
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
@@ -16,7 +16,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
     private const val BASE_MINING_COST = 15.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
-        if (!ConfigManager.data.allowBreak) return
+        if (!ConfigData.allowBreak) return
 
         val start = current.pos
 
