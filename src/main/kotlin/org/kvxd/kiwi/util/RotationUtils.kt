@@ -26,11 +26,15 @@ object RotationUtils {
         )
     }
 
-    fun getHorizontalDistanceSqr(v1: Vec3, v2: Vec3): Double {
-        val dx = v1.x - v2.x
-        val dz = v1.z - v2.z
+    fun getRotationVector(xRot: Float, yRot: Float): Vec3 {
+        val f = xRot * (Math.PI.toFloat() / 180f)
+        val g = -yRot * (Math.PI.toFloat() / 180f)
+        val h = Mth.cos(g)
+        val i = Mth.sin(g)
+        val j = Mth.cos(f)
+        val k = Mth.sin(f)
 
-        return dx * dx + dz * dz
+        return Vec3((i * j).toDouble(), (-k).toDouble(), (h * j).toDouble())
     }
 
     fun getLocalVector(globalDelta: Vec3, yRotDegrees: Float): Vec2 {

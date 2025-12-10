@@ -12,9 +12,6 @@ import org.kvxd.kiwi.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.InventoryUtil
-import org.kvxd.kiwi.util.RotationUtils
-import org.kvxd.kiwi.util.WorldUtils
-import kotlin.math.abs
 
 object PillarExecutor : MovementExecutor {
 
@@ -22,7 +19,7 @@ object PillarExecutor : MovementExecutor {
         get() = 0.65
 
     override fun isFinished(node: Node): Boolean {
-        return CollisionCache.isSolid(node.pos.below())
+        return CollisionCache.isSolid(node.pos.below()) && player.position().y >= node.pos.y
     }
 
     override fun execute(node: Node, path: NodePath) {
@@ -34,24 +31,29 @@ object PillarExecutor : MovementExecutor {
 
         RotationManager.setTarget(pitch = 90f)
 
-        if (player.onGround())
-            handleGroundAlign()
+        if (!MovementController.alignToBlockCenter(node.pos)) {
+            InputOverride.state.jump = false
+            InputOverride.state.use = false
+            return
+        }
 
-        WorldUtils.placeBlockBelow(node.pos)
-    }
+        val placeTarget = node.pos.below()
+        val currentY = player.position().y
 
-    private fun handleGroundAlign() {
-        val center = player.blockPosition().bottomCenter
-        val distSq = RotationUtils.getHorizontalDistanceSqr(player.position(), center)
+        if (player.onGround() || player.deltaMovement.y > 0) {
+            InputOverride.state.jump = true
+        }
 
-        if (distSq > 0.05) {
-            MovementController.moveToward(center, 0.05)
-        } else {
-            //TODO: Remove this; The player should stand still to pillar
-            val safeDelta = 0.1
-            if (abs(player.deltaMovement.x) < safeDelta && abs(player.deltaMovement.z) < safeDelta) {
-                InputOverride.state.jump = true
+        if (!CollisionCache.isSolid(placeTarget)) {
+            val dist = currentY - (placeTarget.y + 1.0)
+
+            if (currentY > placeTarget.y + 0.4) {
+                InputOverride.state.use = true
+            } else {
+                InputOverride.state.use = false
             }
+        } else {
+            InputOverride.state.use = false
         }
     }
 }

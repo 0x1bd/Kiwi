@@ -1,6 +1,9 @@
 package org.kvxd.kiwi.control.input
 
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.client.KeyMapping
 import net.minecraft.client.player.KeyboardInput
+import net.minecraft.world.InteractionHand
 import kotlin.properties.Delegates
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.player
@@ -25,6 +28,17 @@ object InputOverride {
             player.isSprinting = it
         }
 
+        var use by flag { pressed ->
+            val mouseButton = 1
+
+            val key = InputConstants.Type.MOUSE.getOrCreate(mouseButton)
+            KeyMapping.set(key, pressed)
+
+            if (pressed) {
+                KeyMapping.click(key)
+            }
+        }
+
         private fun flag(onChange: (Boolean) -> Unit = {}) =
             Delegates.observable(false) { _, _, new ->
                 if (isActive) onChange(new)
@@ -38,6 +52,7 @@ object InputOverride {
             jump = false
             sneak = false
             sprint = false
+            use = false
         }
     }
 
