@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinAvatarRenderer<AvatarlikeEntity extends Avatar & ClientAvatarEntity> {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("RETURN"))
-    private void onUpdateRenderState(AvatarlikeEntity avatar, AvatarRenderState avatarRenderState, float f, CallbackInfo ci) {
+    private void kiwi$extractRenderState(AvatarlikeEntity avatar, AvatarRenderState avatarRenderState, float f, CallbackInfo ci) {
         if (avatar == Minecraft.getInstance().player) {
             if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
                 avatarRenderState.xRot = RotationManager.INSTANCE.getTargetXRot();

@@ -36,7 +36,7 @@ public abstract class MixinLocalPlayer extends Player {
     }
 
     @Inject(method = "aiStep", at = @At("HEAD"))
-    private void onAiStepHead(CallbackInfo ci) {
+    private void kiwi$aiStepHead(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYRot();
             this.storedPitch = this.getXRot();
@@ -50,7 +50,7 @@ public abstract class MixinLocalPlayer extends Player {
     }
 
     @Inject(method = "aiStep", at = @At("RETURN"))
-    private void onAiStepReturn(CallbackInfo ci) {
+    private void kiwi$aiStepReturn(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYRot(this.storedYaw);
             this.setXRot(this.storedPitch);
@@ -70,7 +70,7 @@ public abstract class MixinLocalPlayer extends Player {
     }
 
     @Inject(method = "sendPosition", at = @At("HEAD"))
-    private void onSendPositionHead(CallbackInfo ci) {
+    private void kiwi$sendPositionHead(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYRot();
             this.storedPitch = this.getXRot();
@@ -81,7 +81,7 @@ public abstract class MixinLocalPlayer extends Player {
     }
 
     @Inject(method = "sendPosition", at = @At("RETURN"))
-    private void onSendPositionReturn(CallbackInfo ci) {
+    private void kiwi$sendPositionReturn(CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYRot(this.storedYaw);
             this.setXRot(this.storedPitch);

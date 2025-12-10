@@ -22,7 +22,7 @@ public class GameRendererMixin {
     private Minecraft minecraft;
 
     @Inject(method = "pick(F)V", at = @At("HEAD"), cancellable = true)
-    private void onPick(float f, CallbackInfo ci) {
+    private void kiwi$pick(float f, CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget()) {
             Entity cameraEntity = this.minecraft.getCameraEntity();
             if (cameraEntity == null) return;
