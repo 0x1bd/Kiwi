@@ -19,16 +19,16 @@ object StandardExecutor : MovementExecutor {
 
     override fun execute(node: Node, path: NodePath) {
         val targetPos = node.toVec()
-        val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
+        val targetYaw = RotationUtils.getLookYaw(player.position(), targetPos)
 
         RotationManager.setTarget(yaw = targetYaw)
         MovementController.forward()
 
-        InputOverride.state.sprint = MovementController.shouldSprint(player, path)
+        InputOverride.state.sprint = MovementController.shouldSprint(path)
 
         if (node.type == MovementType.JUMP) {
             InputOverride.state.jump = true
-        } else if (player.isTouchingWater && targetPos.y > player.y) {
+        } else if (player.isInWater && targetPos.y > player.y) {
             InputOverride.state.jump = true
         }
     }

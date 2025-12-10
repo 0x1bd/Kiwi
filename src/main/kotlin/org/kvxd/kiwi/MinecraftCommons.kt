@@ -1,14 +1,14 @@
 package org.kvxd.kiwi
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.world.World
+import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
+import net.minecraft.world.level.Level
 
-val client: MinecraftClient
-    get() = MinecraftClient.getInstance()!!
+val client: Minecraft
+    get() = Minecraft.getInstance()!!
 
-val player: ClientPlayerEntity
+val player: LocalPlayer
     get() = client.player!!
 
-val world: World
-    get() = client.world!!
+val level: Level
+    get() = client.level!!

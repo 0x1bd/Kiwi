@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.control.input
 
+import net.minecraft.client.player.KeyboardInput
 import kotlin.properties.Delegates
-import net.minecraft.client.input.KeyboardInput
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.player
 
@@ -18,7 +18,7 @@ object InputOverride {
         var jump by flag()
 
         var sneak by flag {
-            player.isSneaking = it
+            //player.crouching = it
         }
 
         var sprint by flag {

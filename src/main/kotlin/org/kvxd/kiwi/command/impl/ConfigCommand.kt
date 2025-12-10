@@ -3,7 +3,7 @@ package org.kvxd.kiwi.command.impl
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
-import net.minecraft.text.Text
+import net.minecraft.network.chat.Component
 import org.kvxd.kiwi.command.AbstractCommand
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.config.ConfigRegistry
@@ -30,7 +30,7 @@ object ConfigCommand : AbstractCommand("config") {
         root.then(literal("list").executes {
             for ((_, entry) in ConfigRegistry.getEntries()) {
                 it.source.sendFeedback(
-                    Text.empty().append(PREFIX).append(entry.toDisplayText())
+                    Component.empty().append(PREFIX).append(entry.toDisplay())
                 )
             }
             1

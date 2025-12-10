@@ -1,23 +1,23 @@
 package org.kvxd.kiwi.render.util
 
+import com.mojang.blaze3d.vertex.PoseStack
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext
-import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.client.renderer.MultiBufferSource
 import org.kvxd.kiwi.client
 
 object Renderer3D {
 
     inline fun render(
-        stack: MatrixStack,
-        consumers: VertexConsumerProvider,
+        stack: PoseStack,
+        bufferSource: MultiBufferSource,
         block: RenderScope.() -> Unit
     ) {
-        val camera = client.gameRenderer.camera
-        val scope = RenderScope(stack, consumers, camera.pos)
+        val camera = client.gameRenderer.mainCamera
+        val scope = RenderScope(stack, bufferSource, camera.position)
         scope.block()
 
-        if (consumers is VertexConsumerProvider.Immediate) {
-            consumers.draw()
+        if (bufferSource is MultiBufferSource.BufferSource) {
+            bufferSource.endBatch()
         }
     }
 
@@ -25,8 +25,8 @@ object Renderer3D {
         context: WorldRenderContext,
         block: RenderScope.() -> Unit
     ) {
-        val camera = client.gameRenderer.camera
-        val scope = RenderScope(context.matrices(), context.consumers(), camera.pos)
+        val camera = client.gameRenderer.mainCamera
+        val scope = RenderScope(context.matrices(), context.consumers(), camera.position)
         scope.block()
     }
 

@@ -1,10 +1,10 @@
 package org.kvxd.kiwi.control.input
 
-import net.minecraft.client.input.Input
-import net.minecraft.util.PlayerInput
-import net.minecraft.util.math.Vec2f
+import net.minecraft.client.player.ClientInput
+import net.minecraft.world.entity.player.Input
+import net.minecraft.world.phys.Vec2
 
-class KiwiInput : Input() {
+class KiwiInput : ClientInput() {
 
     private fun getMovementMultiplier(positive: Boolean, negative: Boolean): Float {
         return if (positive == negative) {
@@ -15,7 +15,7 @@ class KiwiInput : Input() {
     }
 
     override fun tick() {
-        this.playerInput = PlayerInput(
+        this.keyPresses = Input(
             InputOverride.state.forward,
             InputOverride.state.back,
             InputOverride.state.left,
@@ -26,16 +26,16 @@ class KiwiInput : Input() {
         )
 
         val forward = getMovementMultiplier(
-            playerInput.forward,
-            playerInput.backward
+            keyPresses.forward,
+            keyPresses.backward
         )
 
         val left = getMovementMultiplier(
-            playerInput.left,
-            playerInput.right
+            keyPresses.left,
+            keyPresses.right
         )
 
-        this.movementVector = Vec2f(left, forward).normalize()
+        this.moveVector = Vec2(left, forward).normalized()
     }
 
 }

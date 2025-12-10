@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.execute.types
 
-import net.minecraft.util.Hand
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
+import net.minecraft.world.InteractionHand
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.control.MovementController
 import org.kvxd.kiwi.control.RotationManager
@@ -13,7 +13,7 @@ import org.kvxd.kiwi.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
 import org.kvxd.kiwi.util.RotationUtils
-import org.kvxd.kiwi.world
+import org.kvxd.kiwi.level
 
 object MineExecutor : MovementExecutor {
 
@@ -31,30 +31,30 @@ object MineExecutor : MovementExecutor {
         val targetBlock = required.firstOrNull { CollisionCache.isSolid(it) }
 
         if (targetBlock == null) {
-            if (node.pos.y > player.blockPos.y) {
+            if (node.pos.y > player.blockPosition().y) {
                 InputOverride.state.jump = true
             }
             StandardExecutor.execute(node, path)
             return
         }
 
-        val state = world.getBlockState(targetBlock)
-        if (state != null && !state.isAir) {
+        val state = level.getBlockState(targetBlock)
+        if (!state.isAir) {
             MiningUtil.selectBestTool(state)
         }
 
-        val center = targetBlock.toCenterPos()
+        val center = targetBlock.center
         val rots = RotationUtils.getLookRotations(center)
         RotationManager.setTarget(rots.x, rots.y)
 
         if (RotationUtils.isLookingAt(center, 0.6)) {
-            client.interactionManager?.updateBlockBreakingProgress(
+            client.gameMode?.continueDestroyBlock(
                 targetBlock,
                 RotationUtils.getDirection(targetBlock)
             )
-            client.player?.swingHand(Hand.MAIN_HAND)
+            client.player?.swing(InteractionHand.MAIN_HAND)
         } else {
-            client.interactionManager?.cancelBlockBreaking()
+            client.gameMode?.stopDestroyBlock()
         }
     }
 
@@ -66,13 +66,13 @@ object MineExecutor : MovementExecutor {
 
         if (delta.y > 0) {
             list.add(node.pos)
-            list.add(node.pos.up())
+            list.add(node.pos.above())
         } else if (delta.y < 0) {
             list.add(node.pos)
-            list.add(node.pos.up())
+            list.add(node.pos.above())
         } else {
             list.add(node.pos)
-            list.add(node.pos.up())
+            list.add(node.pos.above())
         }
         return list
     }

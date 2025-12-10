@@ -1,10 +1,20 @@
 package org.kvxd.kiwi.pathing.cache
 
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
-import net.minecraft.block.*
-import net.minecraft.registry.tag.FluidTags
-import net.minecraft.util.math.BlockPos
-import org.kvxd.kiwi.world
+import net.minecraft.core.BlockPos
+import net.minecraft.tags.FluidTags
+import net.minecraft.world.level.block.CactusBlock
+import net.minecraft.world.level.block.CampfireBlock
+import net.minecraft.world.level.block.FallingBlock
+import net.minecraft.world.level.block.FireBlock
+import net.minecraft.world.level.block.MagmaBlock
+import net.minecraft.world.level.block.PointedDripstoneBlock
+import net.minecraft.world.level.block.PowderSnowBlock
+import net.minecraft.world.level.block.ScaffoldingBlock
+import net.minecraft.world.level.block.SweetBerryBushBlock
+import net.minecraft.world.level.block.WitherRoseBlock
+import net.minecraft.world.level.block.state.BlockState
+import org.kvxd.kiwi.level
 
 object CollisionCache {
 
@@ -38,7 +48,9 @@ object CollisionCache {
     fun isDangerous(pos: BlockPos) = hasState(pos, DANGER)
 
     fun isWalkable(pos: BlockPos): Boolean {
-        val x = pos.x; val y = pos.y; val z = pos.z
+        val x = pos.x;
+        val y = pos.y;
+        val z = pos.z
 
         if (resolve(x, y, z) != PASSABLE) return false
         if (resolve(x, y + 1, z) != PASSABLE) return false
@@ -54,7 +66,7 @@ object CollisionCache {
         if (cached != UNCACHED) return cached
 
         val pos = BlockPos(x, y, z)
-        val state = world.getBlockState(pos)
+        val state = level.getBlockState(pos)
         val computed = computeState(state, pos)
 
         map.put(key, computed)
@@ -64,12 +76,12 @@ object CollisionCache {
     private fun computeState(state: BlockState, pos: BlockPos): Byte {
         val fluid = state.fluidState
         if (!fluid.isEmpty) {
-            if (fluid.isIn(FluidTags.LAVA)) return LAVA
-            if (fluid.isIn(FluidTags.WATER)) return WATER
+            if (fluid.`is`(FluidTags.LAVA)) return LAVA
+            if (fluid.`is`(FluidTags.WATER)) return WATER
         }
 
         val block = state.block
-        if (block is AbstractFireBlock ||
+        if (block is FireBlock ||
             block is MagmaBlock ||
             block is CactusBlock ||
             block is CampfireBlock ||
@@ -78,9 +90,9 @@ object CollisionCache {
             block is PowderSnowBlock
         ) return DANGER
 
-        if (state.getCollisionShape(world, pos).isEmpty) return PASSABLE
+        if (state.getCollisionShape(level, pos).isEmpty) return PASSABLE
 
-        val above = world.getBlockState(pos.up()).block
+        val above = level.getBlockState(pos.above()).block
         if (above is FallingBlock ||
             above is ScaffoldingBlock ||
             above is PointedDripstoneBlock

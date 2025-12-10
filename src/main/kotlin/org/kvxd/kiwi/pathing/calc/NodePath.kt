@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.calc
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 
 class NodePath(private val nodes: List<Node>) {
 
@@ -34,7 +34,7 @@ class NodePath(private val nodes: List<Node>) {
 
     fun distanceSqToCurrent(pos: BlockPos): Double {
         val cur = current() ?: return Double.MAX_VALUE
-        return pos.getSquaredDistance(cur.pos)
+        return pos.distSqr(cur.pos)
     }
 
     fun reachedCurrent(pos: BlockPos, thresholdSq: Double = 0.8): Boolean {

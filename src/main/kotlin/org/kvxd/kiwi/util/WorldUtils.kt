@@ -1,31 +1,30 @@
 package org.kvxd.kiwi.util
 
-import net.minecraft.util.Hand
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.BlockHitResult
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.player
 
 object WorldUtils {
 
     fun placeBlockBelow(pos: BlockPos) {
-        val placePos = pos.down()
-        val placeBox = Box(placePos)
+        val placePos = pos.below()
+        val placeAABB = AABB(placePos)
 
-        if (player.boundingBox.intersects(placeBox)) return
+        if (player.boundingBox.intersects(placeAABB)) return
 
         val hitResult = BlockHitResult(
-            Vec3d.ofCenter(placePos),
+            placePos.center,
             Direction.UP,
-            placePos.down(),
+            placePos.below(),
             false
         )
 
-        client.interactionManager?.interactBlock(player, Hand.MAIN_HAND, hitResult)
-        player.swingHand(Hand.MAIN_HAND)
+        client.gameMode?.useItemOn(player, InteractionHand.MAIN_HAND, hitResult)
+        player.swing(InteractionHand.MAIN_HAND)
     }
 
 }

@@ -1,10 +1,10 @@
 package org.kvxd.kiwi.util
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.Vec2f
-import net.minecraft.util.math.Vec3d
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.util.Mth
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.RotationManager
 import org.kvxd.kiwi.player
@@ -17,31 +17,31 @@ import kotlin.math.sqrt
 
 object RotationUtils {
 
-    fun getLookYaw(start: Vec3d, target: Vec3d): Float {
+    fun getLookYaw(start: Vec3, target: Vec3): Float {
         val dx = target.x - start.x
         val dz = target.z - start.z
 
-        return MathHelper.wrapDegrees(
+        return Mth.wrapDegrees(
             ((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
         )
     }
 
-    fun getHorizontalDistanceSqr(v1: Vec3d, v2: Vec3d): Double {
+    fun getHorizontalDistanceSqr(v1: Vec3, v2: Vec3): Double {
         val dx = v1.x - v2.x
         val dz = v1.z - v2.z
 
         return dx * dx + dz * dz
     }
 
-    fun getLocalVector(globalDelta: Vec3d, yawDegrees: Float): Vec2f {
-        val yawRad = Math.toRadians(yawDegrees.toDouble())
+    fun getLocalVector(globalDelta: Vec3, yRotDegrees: Float): Vec2 {
+        val yawRad = Math.toRadians(yRotDegrees.toDouble())
         val s = sin(yawRad)
         val c = cos(yawRad)
 
         val localForward = globalDelta.x * (-s) + globalDelta.z * c
         val localStrafe = globalDelta.x * c - globalDelta.z * (-s)
 
-        return Vec2f(localStrafe.toFloat(), localForward.toFloat())
+        return Vec2(localStrafe.toFloat(), localForward.toFloat())
     }
 
     fun normalize(angle: Float): Float {
@@ -51,8 +51,8 @@ object RotationUtils {
         return a
     }
 
-    fun getLookRotations(target: Vec3d): Vec2f {
-        val eyePos = player.eyePos
+    fun getLookRotations(target: Vec3): Vec2 {
+        val eyePos = player.eyePosition
 
         val dx = target.x - eyePos.x
         val dy = target.y - eyePos.y
@@ -60,31 +60,31 @@ object RotationUtils {
 
         val distXZ = sqrt(dx * dx + dz * dz)
 
-        val yaw = MathHelper.wrapDegrees((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
-        val pitch = MathHelper.wrapDegrees((-atan2(dy, distXZ) * 180.0 / PI).toFloat())
+        val yaw = Mth.wrapDegrees((atan2(dz, dx) * 180.0 / PI).toFloat() - 90f)
+        val pitch = Mth.wrapDegrees((-atan2(dy, distXZ) * 180.0 / PI).toFloat())
 
-        return Vec2f(yaw, pitch)
+        return Vec2(yaw, pitch)
     }
 
-    fun isLookingAt(target: Vec3d, threshold: Double): Boolean {
-        val yaw = if (ConfigData.freelook)
-            RotationManager.targetYaw else player.yaw
+    fun isLookingAt(target: Vec3, threshold: Double): Boolean {
+        val yRot = if (ConfigData.freelook)
+            RotationManager.targetYRot else player.yRot
 
-        val pitch = if (ConfigData.freelook)
-            RotationManager.targetPitch else player.pitch
+        val xRot = if (ConfigData.freelook)
+            RotationManager.targetXRot else player.xRot
 
         val desired = getLookRotations(target)
-        val yawDiff = abs(normalize(desired.x - yaw))
-        val pitchDiff = abs(normalize(desired.y - pitch))
+        val yawDiff = abs(normalize(desired.x - yRot))
+        val pitchDiff = abs(normalize(desired.y - xRot))
 
         return yawDiff < threshold && pitchDiff < threshold
     }
 
     fun getDirection(blockPos: BlockPos): Direction {
-        val eye = player.eyePos
-        val center = Vec3d.ofCenter(blockPos)
+        val eye = player.eyePosition
+        val center = Vec3.atCenterOf(blockPos)
 
-        val look = Vec3d(
+        val look = Vec3(
             center.x - eye.x,
             center.y - eye.y,
             center.z - eye.z

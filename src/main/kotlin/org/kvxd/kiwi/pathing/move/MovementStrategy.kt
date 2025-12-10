@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.move
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import kotlin.math.sqrt
@@ -20,7 +20,7 @@ abstract class AbstractMovement(private val defaultType: MovementType) : Movemen
         typeOverride: MovementType? = null
     ) {
         val g = parent.costG + baseCost
-        val h = sqrt(pos.getSquaredDistance(target))
+        val h = sqrt(pos.distSqr(target))
         this.add(Node(pos, parent, g, h, typeOverride ?: defaultType))
     }
 }

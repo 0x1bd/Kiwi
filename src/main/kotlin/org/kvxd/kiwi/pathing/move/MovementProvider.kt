@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.move
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.move.types.DropMovement
 import org.kvxd.kiwi.pathing.move.types.MineMovement

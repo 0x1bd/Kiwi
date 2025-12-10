@@ -1,7 +1,6 @@
 package org.kvxd.kiwi.util
 
-import net.minecraft.item.BlockItem
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
 import org.kvxd.kiwi.player
 
 object InventoryUtil {
@@ -13,7 +12,7 @@ object InventoryUtil {
         var bestScore = Float.NEGATIVE_INFINITY
 
         for (i in 0 until 9) {
-            val stack = inv.getStack(i)
+            val stack = inv.getItem(i)
             val s = score(stack)
 
             if (s > bestScore) {
@@ -28,10 +27,8 @@ object InventoryUtil {
     fun selectSlot(block: (ItemStack) -> Boolean): Boolean {
         val inv = player.inventory
 
-        if (inv.selectedStack.item is BlockItem) return true
-
         for (i in 0 until 9) {
-            val stack = inv.getStack(i)
+            val stack = inv.getItem(i)
             if (block(stack)) {
                 inv.selectedSlot = i
                 return true

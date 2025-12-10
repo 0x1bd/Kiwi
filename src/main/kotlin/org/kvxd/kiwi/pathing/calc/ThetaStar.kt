@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.calc
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
@@ -80,7 +80,7 @@ class ThetaStar {
                         LineOfSight.check(parent, neighborNode)
 
                 if (canSmooth) {
-                    val dist = sqrt(parent!!.pos.getSquaredDistance(neighborNode.pos))
+                    val dist = sqrt(parent.pos.distSqr(neighborNode.pos))
                     potentialG = parent.costG + dist
                     potentialParent = parent
                 } else {

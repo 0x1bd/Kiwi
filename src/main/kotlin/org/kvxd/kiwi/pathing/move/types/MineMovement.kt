@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.move.types
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
@@ -21,7 +21,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
         val start = current.pos
 
         for (dir in Direction.entries) {
-            val dest = start.offset(dir)
+            val dest = start.relative(dir)
 
             if (CollisionCache.isWalkable(dest) && dir != Direction.DOWN) continue
 
@@ -65,23 +65,23 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
     }
 
     private fun getBlocksToBreak(start: BlockPos, dir: Direction): List<BlockPos> {
-        val dest = start.offset(dir)
+        val dest = start.relative(dir)
         val list = ArrayList<BlockPos>(2)
 
         when (dir) {
             Direction.UP -> {
                 if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.up())) list.add(dest.up())
+                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
             }
 
             Direction.DOWN -> {
                 if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.up())) list.add(dest.up())
+                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
             }
 
             else -> {
                 if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.up())) list.add(dest.up())
+                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
             }
         }
 
@@ -89,9 +89,10 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
     }
 
     private fun isFloodRisk(pos: BlockPos): Boolean {
-        if (CollisionCache.isDangerous(pos.up())) return true
-        for (side in Direction.Type.HORIZONTAL) {
-            if (CollisionCache.isDangerous(pos.offset(side))) return true
+        if (CollisionCache.isDangerous(pos.above())) return true
+
+        for (side in Direction.Plane.HORIZONTAL) {
+            if (CollisionCache.isDangerous(pos.relative(side))) return true
         }
         return false
     }

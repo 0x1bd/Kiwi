@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.calc
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
+import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import kotlin.math.floor
 import kotlin.math.max
@@ -19,11 +19,11 @@ object LineOfSight {
         val endVec = end.toVec()
 
         val dir = endVec.subtract(startVec)
-        if (dir.horizontalLengthSquared() < 0.0001) return true
+        if (dir.horizontalDistanceSqr() < 0.0001) return true
 
         if (!isWalkableRay(startVec, endVec, requireGround = true)) return false
 
-        val perp = Vec3d(-dir.z, 0.0, dir.x).normalize().multiply(RADIUS)
+        val perp = Vec3(-dir.z, 0.0, dir.x).normalize().multiply(RADIUS, RADIUS, RADIUS)
 
         val s1 = startVec.add(perp)
         val e1 = endVec.add(perp)
@@ -36,7 +36,7 @@ object LineOfSight {
         return !(!leftClear || !rightClear)
     }
 
-    private fun isWalkableRay(start: Vec3d, end: Vec3d, requireGround: Boolean): Boolean {
+    private fun isWalkableRay(start: Vec3, end: Vec3, requireGround: Boolean): Boolean {
         val x1 = start.x
         val y1 = start.y
         val z1 = start.z
@@ -57,7 +57,7 @@ object LineOfSight {
         var cy = y1
         var cz = z1
 
-        val mutablePos = BlockPos.Mutable()
+        val mutablePos = BlockPos.MutableBlockPos()
 
         for (i in 0..steps) {
             mutablePos.set(floor(cx).toInt(), floor(cy).toInt(), floor(cz).toInt())

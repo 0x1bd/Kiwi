@@ -1,7 +1,6 @@
 package org.kvxd.kiwi.pathing.execute.types
 
-import net.minecraft.item.BlockItem
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.item.BlockItem
 import org.kvxd.kiwi.control.MovementController
 import org.kvxd.kiwi.control.PathExecutor
 import org.kvxd.kiwi.control.RotationManager
@@ -23,7 +22,7 @@ object PillarExecutor : MovementExecutor {
         get() = 0.65
 
     override fun isFinished(node: Node): Boolean {
-        return CollisionCache.isSolid(node.pos.down())
+        return CollisionCache.isSolid(node.pos.below())
     }
 
     override fun execute(node: Node, path: NodePath) {
@@ -35,21 +34,22 @@ object PillarExecutor : MovementExecutor {
 
         RotationManager.setTarget(pitch = 90f)
 
-        if (player.isOnGround)
+        if (player.onGround())
             handleGroundAlign()
 
         WorldUtils.placeBlockBelow(node.pos)
     }
 
     private fun handleGroundAlign() {
-        val center = Vec3d.ofBottomCenter(player.blockPos)
-        val distSq = RotationUtils.getHorizontalDistanceSqr(player.entityPos, center)
+        val center = player.blockPosition().bottomCenter
+        val distSq = RotationUtils.getHorizontalDistanceSqr(player.position(), center)
 
         if (distSq > 0.05) {
-            MovementController.moveToward(player, center, 0.05)
+            MovementController.moveToward(center, 0.05)
         } else {
-            val safeVelocity = 0.1
-            if (abs(player.velocity.x) < safeVelocity && abs(player.velocity.z) < safeVelocity) {
+            //TODO: Remove this; The player should stand still to pillar
+            val safeDelta = 0.1
+            if (abs(player.deltaMovement.x) < safeDelta && abs(player.deltaMovement.z) < safeDelta) {
                 InputOverride.state.jump = true
             }
         }

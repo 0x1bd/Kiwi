@@ -1,8 +1,8 @@
 package org.kvxd.kiwi.render
 
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.PathExecutor
 import org.kvxd.kiwi.pathing.calc.MovementType
@@ -32,22 +32,22 @@ object PathRenderer {
 
                 depthTest(false)
 
-                val vecOffset = Vec3d(0.0, 0.5, 0.0)
+                val vecOffset = Vec3(0.0, 0.5, 0.0)
                 val currentIndex = path.index.coerceIn(0, path.size - 1)
 
-                var prevPos: Vec3d?
+                var prevPos: Vec3?
                 var loopStart: Int
 
                 if (currentIndex > 0) {
                     val prevNode = path[currentIndex - 1] ?: return@render
-                    prevPos = prevNode.pos.toCenterPos().add(vecOffset)
+                    prevPos = prevNode.pos.center.add(vecOffset)
 
                     drawNodeMarker(prevPos, getTypeColor(prevNode.type))
 
                     loopStart = currentIndex
                 } else {
                     val startNode = path[0] ?: return@render
-                    prevPos = startNode.pos.toCenterPos().add(vecOffset)
+                    prevPos = startNode.pos.center.add(vecOffset)
 
                     drawNodeMarker(prevPos, getTypeColor(startNode.type))
 
@@ -56,7 +56,7 @@ object PathRenderer {
 
                 for (i in loopStart until path.size) {
                     val node = path[i] ?: continue
-                    val currentPos = node.pos.toCenterPos().add(vecOffset)
+                    val currentPos = node.pos.center.add(vecOffset)
                     val segmentColor = getTypeColor(node.type)
 
                     drawLine(
@@ -73,24 +73,25 @@ object PathRenderer {
 
                 val lastPos = path.last()?.pos ?: return@render
 
-                val destBox = Box(
+                val destAABB = AABB(
                     lastPos.x.toDouble(), lastPos.y.toDouble(), lastPos.z.toDouble(),
                     lastPos.x + 1.0, lastPos.y + 1.0, lastPos.z + 1.0
                 )
-                drawBox(box = destBox, color = COLOR_DEST, filled = false)
+
+                drawAABB(aabb = destAABB, color = COLOR_DEST, filled = false)
             }
         }
     }
 
-    private fun RenderScope.drawNodeMarker(pos: Vec3d, color: Color) {
+    private fun RenderScope.drawNodeMarker(pos: Vec3, color: Color) {
         val half = NODE_SIZE / 2.0
-        val box = Box(
+        val aabb = AABB(
             pos.x - half, pos.y - half, pos.z - half,
             pos.x + half, pos.y + half, pos.z + half
         )
 
-        drawBox(box, color, filled = true)
-        drawBox(box, Color.WHITE, filled = false)
+        drawAABB(aabb, color, filled = true)
+        drawAABB(aabb, Color.WHITE, filled = false)
     }
 
     private fun getTypeColor(type: MovementType): Color {

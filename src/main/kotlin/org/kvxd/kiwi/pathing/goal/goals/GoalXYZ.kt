@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.goal.goals
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.goal.Goal
@@ -12,7 +12,7 @@ class GoalXYZ(private val target: BlockPos) : Goal {
         if (pos == target) return true
 
         if (!ConfigData.strictPosition) {
-            if (pos == target.up()) {
+            if (pos == target.above()) {
                 return CollisionCache.isSolid(target)
             }
         }
@@ -21,7 +21,7 @@ class GoalXYZ(private val target: BlockPos) : Goal {
     }
 
     override fun getHeuristic(pos: BlockPos): Double {
-        return sqrt(pos.getSquaredDistance(target))
+        return sqrt(pos.distSqr(target))
     }
 
     override fun getApproximateTarget(): BlockPos = target

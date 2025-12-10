@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.pathing.goal.goals
 
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.pathing.goal.Goal
 import kotlin.math.sqrt
 

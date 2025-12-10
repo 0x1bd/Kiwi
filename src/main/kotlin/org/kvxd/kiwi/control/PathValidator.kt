@@ -39,7 +39,7 @@ object PathValidator {
     private fun isValidNode(node: Node): Boolean {
         if (node.type == MovementType.TRAVEL || node.type == MovementType.JUMP) {
             if (!CollisionCache.isPassable(node.pos)) return false
-            if (!CollisionCache.isPassable(node.pos.up())) return false
+            if (!CollisionCache.isPassable(node.pos.above())) return false
         }
 
         return true
@@ -52,15 +52,15 @@ object PathValidator {
             }
 
             MovementType.JUMP -> {
-                if (!CollisionCache.isPassable(prev.pos.up(2))) return false
+                if (!CollisionCache.isPassable(prev.pos.above(2))) return false
 
-                if (!CollisionCache.isSolid(current.pos.down())) return false
-                if (!CollisionCache.isPassable(current.pos.up())) return false
+                if (!CollisionCache.isSolid(current.pos.below())) return false
+                if (!CollisionCache.isPassable(current.pos.above())) return false
             }
 
             MovementType.DROP -> {
-                if (!CollisionCache.isPassable(prev.pos.up())) return false
-                if (!CollisionCache.isSolid(current.pos.down())) return false
+                if (!CollisionCache.isPassable(prev.pos.above())) return false
+                if (!CollisionCache.isSolid(current.pos.below())) return false
             }
 
             else -> {

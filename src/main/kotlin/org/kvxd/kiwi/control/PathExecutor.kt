@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.control
 
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.cache.CollisionCache
@@ -24,7 +24,7 @@ object PathExecutor {
     private var calculating = false
     private var pathingId = 0
 
-    private var lastPos: Vec3d = Vec3d.ZERO
+    private var lastPos: Vec3 = Vec3.ZERO
     private var stuckTicks = 0
     private const val STUCK_THRESHOLD_TICKS = 20
     private const val STUCK_DISTANCE_SQ = 0.0025
@@ -33,7 +33,7 @@ object PathExecutor {
         currentGoal = goal
         active = true
         stuckTicks = 0
-        lastPos = player.entityPos
+        lastPos = player.position()
         repath()
     }
 
@@ -67,7 +67,7 @@ object PathExecutor {
 
         CollisionCache.clearCache()
 
-        if (player.age % 10 == 0) {
+        if (player.tickCount % 10 == 0) {
             if (PathValidator.isPathObstructed(path)) {
                 ClientMessenger.debug("Path obstructed! Repathing...")
                 repath()
@@ -78,12 +78,12 @@ object PathExecutor {
         var currNode = path.current() ?: run { finishCheck(); return }
         var executor = currNode.type.executor
 
-        if (path.reachedCurrent(player.blockPos) && executor.isFinished(currNode)) {
+        if (path.reachedCurrent(player.blockPosition()) && executor.isFinished(currNode)) {
             if (path.advance()) {
                 currNode = path.current()!!
                 executor = currNode.type.executor
                 stuckTicks = 0
-                lastPos = player.entityPos
+                lastPos = player.position()
             } else {
                 finishCheck()
                 return
@@ -98,7 +98,7 @@ object PathExecutor {
     }
 
     private fun checkDeviation(path: NodePath, threshold: Double): Boolean {
-        val playerPos = player.entityPos
+        val playerPos = player.position()
         val targetPos = path.current()!!.toVec()
         val prevNode = path.previous()
 
@@ -132,7 +132,7 @@ object PathExecutor {
         return false
     }
 
-    private fun getSquaredDistanceToSegment(p: Vec3d, a: Vec3d, b: Vec3d): Double {
+    private fun getSquaredDistanceToSegment(p: Vec3, a: Vec3, b: Vec3): Double {
         val l2 = (b.x - a.x) * (b.x - a.x) + (b.z - a.z) * (b.z - a.z)
         if (l2 == 0.0) return (p.x - a.x) * (p.x - a.x) + (p.z - a.z) * (p.z - a.z)
 
@@ -149,11 +149,11 @@ object PathExecutor {
     }
 
     private fun checkStuck(currentNode: Node): Boolean {
-        if (!player.isOnGround && !player.isTouchingWater) return false
+        if (!player.onGround() && !player.isInWater) return false
         if (currentNode.type == MovementType.MINE || currentNode.type == MovementType.PILLAR) return false
 
-        val currentPos = player.entityPos
-        if (currentPos.squaredDistanceTo(lastPos) < STUCK_DISTANCE_SQ) {
+        val currentPos = player.position()
+        if (currentPos.distanceToSqr(lastPos) < STUCK_DISTANCE_SQ) {
             stuckTicks++
         } else {
             stuckTicks = 0
@@ -170,7 +170,7 @@ object PathExecutor {
     }
 
     private fun repath() {
-        val start = player.blockPos ?: return
+        val start = player.blockPosition()
         val goal = currentGoal ?: return
 
         pathingId++
@@ -196,12 +196,12 @@ object PathExecutor {
 
         path = result.path
         stuckTicks = 0
-        lastPos = player.entityPos
+        lastPos = player.position()
         InputOverride.activate()
 
         val firstNode = path.current() ?: return
 
-        if (firstNode.pos == player.blockPos) {
+        if (firstNode.pos == player.blockPosition()) {
             val next = path.peek(1)
             if (next != null && next.pos.y == firstNode.pos.y) {
                 path.advance()
@@ -213,7 +213,7 @@ object PathExecutor {
 
     private fun finishCheck() {
         val goal = currentGoal ?: return
-        if (goal.hasReached(player.blockPos)) {
+        if (goal.hasReached(player.blockPosition())) {
             ClientMessenger.debug("Goal reached!")
             stop()
         } else {

@@ -14,17 +14,17 @@ object DropExecutor : MovementExecutor {
     override fun isFinished(node: Node): Boolean = true
 
     override fun execute(node: Node, path: NodePath) {
-        if (player.isOnGround || player.isTouchingWater) {
+        if (player.onGround() || player.isInWater) {
             StandardExecutor.execute(node, path)
             return
         }
 
         val targetPos = node.toVec()
-        val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
+        val targetYaw = RotationUtils.getLookYaw(player.position(), targetPos)
 
         RotationManager.setTarget(yaw = targetYaw)
 
-        MovementController.moveToward(player, targetPos)
+        MovementController.moveToward(targetPos)
 
         InputOverride.state.sprint = false
     }

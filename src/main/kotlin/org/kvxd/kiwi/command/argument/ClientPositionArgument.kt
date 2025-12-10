@@ -6,24 +6,24 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
-import net.minecraft.command.argument.CoordinateArgument
-import net.minecraft.text.Text
-import net.minecraft.util.math.BlockPos
+import net.minecraft.commands.arguments.coordinates.WorldCoordinate
+import net.minecraft.core.BlockPos
+import net.minecraft.network.chat.Component
 
 class ClientPositionArgument private constructor() : ArgumentType<ClientPositionArgument.Position> {
 
     data class Position(
-        val x: CoordinateArgument,
-        val y: CoordinateArgument,
-        val z: CoordinateArgument
+        val x: WorldCoordinate,
+        val y: WorldCoordinate,
+        val z: WorldCoordinate
     ) {
 
         fun toBlockPos(source: FabricClientCommandSource): BlockPos {
             val pos = source.position
 
-            val absX = x.toAbsoluteCoordinate(pos.x).toInt()
-            val absY = y.toAbsoluteCoordinate(pos.y).toInt()
-            val absZ = z.toAbsoluteCoordinate(pos.z).toInt()
+            val absX = x.get(pos.x).toInt()
+            val absY = y.get(pos.y).toInt()
+            val absZ = z.get(pos.z).toInt()
 
             return BlockPos(absX, absY, absZ)
         }
@@ -31,13 +31,13 @@ class ClientPositionArgument private constructor() : ArgumentType<ClientPosition
 
     @Throws(CommandSyntaxException::class)
     override fun parse(reader: StringReader): Position {
-        val x = CoordinateArgument.parse(reader)
+        val x = WorldCoordinate.parseInt(reader)
         reader.expect(' ')
 
-        val y = CoordinateArgument.parse(reader)
+        val y = WorldCoordinate.parseInt(reader)
         reader.expect(' ')
 
-        val z = CoordinateArgument.parse(reader)
+        val z = WorldCoordinate.parseInt(reader)
 
         return Position(x, y, z)
     }
@@ -47,7 +47,7 @@ class ClientPositionArgument private constructor() : ArgumentType<ClientPosition
         fun blockPos(): ClientPositionArgument = ClientPositionArgument()
 
         private val INVALID = DynamicCommandExceptionType {
-            Text.literal("Invalid client position: $it")
+            Component.literal("Invalid client position: $it")
         }
 
         fun get(

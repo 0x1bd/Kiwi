@@ -1,7 +1,6 @@
 package org.kvxd.kiwi.pathing.move.types
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
@@ -42,18 +41,20 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
         target: BlockPos,
         isDiagonal: Boolean
     ) {
-        val offset = start.add(dx, 0, dz)
+        val offset = start.offset(dx, 0, dz)
         val cost = if (isDiagonal) COST_DIAGONAL else COST_FLAT
 
         if (CollisionCache.isWalkable(offset)) {
             if (isDiagonal) {
-                if (CollisionCache.isSolid(start.add(dx, 0, 0)) ||
-                    CollisionCache.isSolid(start.add(0, 0, dz))) {
+                if (CollisionCache.isSolid(start.offset(dx, 0, 0)) ||
+                    CollisionCache.isSolid(start.offset(0, 0, dz))
+                ) {
                     return
                 }
 
-                if (!CollisionCache.isSolid(start.add(dx, 0, 0).down()) ||
-                    !CollisionCache.isSolid(start.add(0, 0, dz).down())) {
+                if (!CollisionCache.isSolid(start.offset(dx, 0, 0).below()) ||
+                    !CollisionCache.isSolid(start.offset(0, 0, dz).below())
+                ) {
                     return
                 }
             }
@@ -63,21 +64,21 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
         }
 
         if (!isDiagonal) {
-            if (CollisionCache.isPassable(start.up(2)) &&
+            if (CollisionCache.isPassable(start.above(2)) &&
                 CollisionCache.isSolid(offset) &&
-                CollisionCache.isPassable(offset.up()) &&
-                CollisionCache.isPassable(offset.up(2))
+                CollisionCache.isPassable(offset.above()) &&
+                CollisionCache.isPassable(offset.above(2))
             ) {
-                output.append(offset.up(), current, target, COST_JUMP, MovementType.JUMP)
+                output.append(offset.above(), current, target, COST_JUMP, MovementType.JUMP)
                 return
             }
 
             if (CollisionCache.isPassable(offset) &&
-                CollisionCache.isPassable(offset.up()) &&
-                CollisionCache.isPassable(offset.down()) &&
-                CollisionCache.isSolid(offset.down(2))
+                CollisionCache.isPassable(offset.above()) &&
+                CollisionCache.isPassable(offset.below()) &&
+                CollisionCache.isSolid(offset.below(2))
             ) {
-                output.append(offset.down(), current, target, COST_FLAT, MovementType.DROP)
+                output.append(offset.below(), current, target, COST_FLAT, MovementType.DROP)
             }
         }
     }

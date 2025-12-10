@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.pathing.calc
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
+import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 
 data class Node(
     val pos: BlockPos,
@@ -20,7 +20,7 @@ data class Node(
         return costF.compareTo(other.costF)
     }
 
-    fun toVec(): Vec3d = Vec3d.ofBottomCenter(pos)
+    fun toVec(): Vec3 = Vec3.atBottomCenterOf(pos)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

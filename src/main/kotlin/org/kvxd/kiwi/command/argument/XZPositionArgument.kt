@@ -6,7 +6,7 @@ import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
-import net.minecraft.text.Text
+import net.minecraft.network.chat.Component
 
 class XZPositionArgument private constructor() : ArgumentType<XZPositionArgument.Position> {
 
@@ -29,7 +29,7 @@ class XZPositionArgument private constructor() : ArgumentType<XZPositionArgument
         fun xz(): XZPositionArgument = XZPositionArgument()
 
         private val INVALID = DynamicCommandExceptionType {
-            Text.literal("Invalid XZ position: $it")
+            Component.literal("Invalid XZ position: $it")
         }
 
         fun get(

@@ -1,10 +1,10 @@
 package org.kvxd.kiwi.control
 
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.NodePath
+import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.RotationUtils
 
 object MovementController {
@@ -21,13 +21,13 @@ object MovementController {
         }
     }
 
-    fun moveToward(player: ClientPlayerEntity, targetPos: Vec3d, threshold: Double = 0.15) {
-        val facingYaw = if (RotationManager.hasTarget) RotationManager.targetYaw else player.yaw
+    fun moveToward(targetPos: Vec3, threshold: Double = 0.15) {
+        val facingYaw = if (RotationManager.hasTarget) RotationManager.targetYRot else player.yRot
 
-        val delta = targetPos.subtract(player.entityPos)
+        val delta = targetPos.subtract(player.position())
         val local = RotationUtils.getLocalVector(delta, facingYaw)
 
-        val vel = RotationUtils.getLocalVector(player.velocity, facingYaw)
+        val vel = RotationUtils.getLocalVector(player.deltaMovement, facingYaw)
 
         with(InputOverride.state) {
             if (local.y > threshold) {
@@ -44,8 +44,8 @@ object MovementController {
         }
     }
 
-    fun shouldSprint(player: ClientPlayerEntity, path: NodePath): Boolean {
-        if (player.hungerManager.foodLevel <= 6) return false
+    fun shouldSprint(path: NodePath): Boolean {
+        if (player.foodData.foodLevel <= 6) return false
         if (player.isUsingItem) return false
         if (player.horizontalCollision) return false
 
@@ -53,7 +53,7 @@ object MovementController {
 
         if (current.type == MovementType.TRAVEL && path.next()?.type == MovementType.TRAVEL) return true
 
-        val dist = player.blockPos.getSquaredDistance(current.pos)
+        val dist = player.blockPosition().distSqr(current.pos)
 
         return current.type.canSprint && dist > 6.0
     }

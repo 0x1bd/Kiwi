@@ -1,7 +1,6 @@
 package org.kvxd.kiwi.pathing.calc
 
-import net.minecraft.util.math.BlockPos
-import org.kvxd.kiwi.client
+import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.goal.Goal
 

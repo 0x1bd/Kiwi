@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.util
 
-import net.minecraft.util.Formatting
+import net.minecraft.ChatFormatting
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.pathing.calc.PathResult
 import java.io.File
@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 
 object PathProfiler {
 
-    private val logFile = File(client.runDirectory, "kiwi_path_log.csv")
+    private val logFile = File(client.gameDirectory, "kiwi_path_log.csv")
 
     init {
         if (!logFile.exists()) {
@@ -22,7 +22,7 @@ object PathProfiler {
             (result.nodesVisited / (result.timeComputedMs / 1000.0)).toLong()
         else 0
 
-        val color = if (success) Formatting.GREEN else Formatting.RED
+        val color = if (success) ChatFormatting.GREEN else ChatFormatting.RED
 
         ClientMessenger.send {
             element("Status", if (success) "OK" else "FAIL", valueColor = color)
