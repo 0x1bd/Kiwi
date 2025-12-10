@@ -2,19 +2,15 @@ package org.kvxd.kiwi.pathing.move
 
 import net.minecraft.util.math.BlockPos
 import org.kvxd.kiwi.pathing.calc.Node
-import org.kvxd.kiwi.pathing.move.types.DiagonalMovement
 import org.kvxd.kiwi.pathing.move.types.DropMovement
-import org.kvxd.kiwi.pathing.move.types.JumpMovement
 import org.kvxd.kiwi.pathing.move.types.MineMovement
 import org.kvxd.kiwi.pathing.move.types.PillarMovement
-import org.kvxd.kiwi.pathing.move.types.WalkMovement
+import org.kvxd.kiwi.pathing.move.types.TravelMovement
 
 object MovementProvider {
 
     private val STRATEGIES = listOf(
-        WalkMovement,
-        DiagonalMovement,
-        JumpMovement,
+        TravelMovement,
         DropMovement,
         PillarMovement,
         MineMovement

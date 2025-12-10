@@ -6,8 +6,9 @@ import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.pathing.move.MovementProvider
+import kotlin.math.sqrt
 
-class AStar {
+class ThetaStar {
 
     private val nodeRegistry = HashMap<Long, Node>(16384)
     private val openSet = MinHeap()
@@ -24,7 +25,7 @@ class AStar {
         CollisionCache.clearCache()
 
         val hStart = goal.getHeuristic(start)
-        val startNode = Node(start, null, 0.0, hStart, MovementType.WALK)
+        val startNode = Node(start, null, 0.0, hStart, MovementType.TRAVEL)
 
         openSet.add(startNode)
         nodeRegistry[start.asLong()] = startNode
@@ -69,19 +70,51 @@ class AStar {
 
                 if (closedSet.contains(nPosLong)) continue
 
-                val existingNode = nodeRegistry[nPosLong]
+                val parent = current.parent
 
+                var potentialG: Double
+                var potentialParent: Node?
+
+                val canSmooth = parent != null &&
+                        neighborNode.type.isSmoothable &&
+                        LineOfSight.check(parent, neighborNode)
+
+                if (canSmooth) {
+                    val dist = sqrt(parent!!.pos.getSquaredDistance(neighborNode.pos))
+                    potentialG = parent.costG + dist
+                    potentialParent = parent
+                } else {
+                    potentialG = neighborNode.costG
+                    potentialParent = current
+                }
+
+                var finalType = neighborNode.type
+                if (potentialParent != null &&
+                    (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP)) {
+
+                    if (neighborNode.pos.y > potentialParent.pos.y) {
+                        finalType = MovementType.JUMP
+                    }
+                }
+
+                val existingNode = nodeRegistry[nPosLong]
                 val hCost = goal.getHeuristic(neighborNode.pos) * 1.001
 
                 if (existingNode == null) {
-                    val newNode = neighborNode.copy(costH = hCost)
+                    val newNode = neighborNode.copy(
+                        costG = potentialG,
+                        costH = hCost,
+                        parent = potentialParent,
+                        type = finalType
+                    )
+
                     openSet.add(newNode)
                     nodeRegistry[nPosLong] = newNode
                 } else {
-                    if (neighborNode.costG < existingNode.costG) {
-                        existingNode.costG = neighborNode.costG
-                        existingNode.parent = current
-                        existingNode.type = neighborNode.type
+                    if (potentialG < existingNode.costG) {
+                        existingNode.costG = potentialG
+                        existingNode.parent = potentialParent
+                        existingNode.type = finalType
 
                         openSet.update(existingNode)
                     }
@@ -96,7 +129,6 @@ class AStar {
         val durationMs = (endTime - startTime) / 1_000_000.0
 
         val pathSize = finalPath.size
-
         val isValid = found || (iterations >= maxOps && pathSize > 1)
 
         return PathResult(
@@ -114,7 +146,6 @@ class AStar {
             list.add(curr)
             curr = curr.parent
         }
-
         list.reverse()
         return NodePath(list)
     }

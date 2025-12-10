@@ -9,7 +9,7 @@ import org.kvxd.kiwi.command.AbstractCommand
 import org.kvxd.kiwi.command.argument.ClientPositionArgument
 import org.kvxd.kiwi.command.argument.XZPositionArgument
 import org.kvxd.kiwi.control.PathExecutor
-import org.kvxd.kiwi.pathing.goal.goals.GoalBlock
+import org.kvxd.kiwi.pathing.goal.goals.GoalXYZ
 import org.kvxd.kiwi.pathing.goal.goals.GoalNear
 import org.kvxd.kiwi.pathing.goal.goals.GoalXZ
 
@@ -18,12 +18,12 @@ object GoalCommand : AbstractCommand("goal") {
     override fun build(): LiteralArgumentBuilder<FabricClientCommandSource> {
         return literal(name)
             .then(
-                literal("goto").then(
+                literal("xyz").then(
                     ClientCommandManager.argument("pos", ClientPositionArgument.blockPos())
                         .executes { ctx ->
                             val pos = ClientPositionArgument.get(ctx, "pos")
 
-                            PathExecutor.setGoal(GoalBlock(pos))
+                            PathExecutor.setGoal(GoalXYZ(pos))
                             1
                         })
             ).then(

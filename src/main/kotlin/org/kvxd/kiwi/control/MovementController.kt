@@ -3,9 +3,9 @@ package org.kvxd.kiwi.control
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.Vec3d
 import org.kvxd.kiwi.control.input.InputOverride
+import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.util.RotationUtils
-import kotlin.math.abs
 
 object MovementController {
 
@@ -21,7 +21,7 @@ object MovementController {
         }
     }
 
-    fun moveToward(player: ClientPlayerEntity, targetPos: Vec3d, threshold: Double = 0.05) {
+    fun moveToward(player: ClientPlayerEntity, targetPos: Vec3d, threshold: Double = 0.15) {
         val facingYaw = if (RotationManager.hasTarget) RotationManager.targetYaw else player.yaw
 
         val delta = targetPos.subtract(player.entityPos)
@@ -47,12 +47,14 @@ object MovementController {
     fun shouldSprint(player: ClientPlayerEntity, path: NodePath): Boolean {
         if (player.hungerManager.foodLevel <= 6) return false
         if (player.isUsingItem) return false
+        if (player.horizontalCollision) return false
 
         val current = path.current() ?: return false
 
-        if (!current.type.canSprint) return false
+        if (current.type == MovementType.TRAVEL && path.next()?.type == MovementType.TRAVEL) return true
 
-        val next = path.peek(1)
-        return next?.type?.canSprint == true
+        val dist = player.blockPos.getSquaredDistance(current.pos)
+
+        return current.type.canSprint && dist > 6.0
     }
 }

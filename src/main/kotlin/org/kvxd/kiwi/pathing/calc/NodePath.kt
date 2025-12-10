@@ -13,6 +13,8 @@ class NodePath(private val nodes: List<Node>) {
 
     fun current(): Node? = nodes.getOrNull(index)
 
+    fun previous(): Node? = nodes.getOrNull(index - 1)
+
     fun peek(offset: Int = 0): Node? = nodes.getOrNull(index + offset)
 
     fun next(): Node? = peek(1)
@@ -35,10 +37,7 @@ class NodePath(private val nodes: List<Node>) {
         return pos.getSquaredDistance(cur.pos)
     }
 
-    fun reachedCurrent(pos: BlockPos, thresholdSq: Double = 0.6): Boolean {
+    fun reachedCurrent(pos: BlockPos, thresholdSq: Double = 0.8): Boolean {
         return distanceSqToCurrent(pos) < thresholdSq
     }
-
-    fun toList(): List<Node> = nodes
-
 }

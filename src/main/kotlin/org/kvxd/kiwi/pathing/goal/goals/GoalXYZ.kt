@@ -6,7 +6,7 @@ import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.goal.Goal
 import kotlin.math.sqrt
 
-class GoalBlock(private val target: BlockPos) : Goal {
+class GoalXYZ(private val target: BlockPos) : Goal {
 
     override fun hasReached(pos: BlockPos): Boolean {
         if (pos == target) return true

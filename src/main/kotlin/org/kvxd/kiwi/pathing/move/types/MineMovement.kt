@@ -11,8 +11,9 @@ import org.kvxd.kiwi.util.MiningUtil
 
 object MineMovement : AbstractMovement(MovementType.MINE) {
 
-    private const val PENALTY = 3.0
-    private const val BASE_WALK_COST = 1.0
+    private const val TIME_PENALTY = 6.0
+
+    private const val BASE_MINING_COST = 15.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         if (!ConfigManager.data.allowBreak) return
@@ -28,7 +29,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
 
             if (blocksToBreak.isEmpty()) continue
 
-            var totalCost = 0.0
+            var totalTime = 0.0
             var possible = true
 
             for (pos in blocksToBreak) {
@@ -38,7 +39,6 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
                 }
 
                 val time = MiningUtil.getBreakTime(pos)
-
                 if (time.isInfinite()) {
                     possible = false
                     break
@@ -49,11 +49,17 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
                     break
                 }
 
-                totalCost += time
+                totalTime += time
             }
 
-            if (possible && totalCost > 0) {
-                output.append(dest, current, target, BASE_WALK_COST + (totalCost * PENALTY))
+            if (possible) {
+                var cost = BASE_MINING_COST + (totalTime * TIME_PENALTY)
+
+                if (dir == Direction.UP) {
+                    cost += 5.0
+                }
+
+                output.append(dest, current, target, cost)
             }
         }
     }
@@ -70,6 +76,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
 
             Direction.DOWN -> {
                 if (CollisionCache.isSolid(dest)) list.add(dest)
+                if (CollisionCache.isSolid(dest.up())) list.add(dest.up())
             }
 
             else -> {
@@ -83,12 +90,9 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
 
     private fun isFloodRisk(pos: BlockPos): Boolean {
         if (CollisionCache.isDangerous(pos.up())) return true
-
         for (side in Direction.Type.HORIZONTAL) {
             if (CollisionCache.isDangerous(pos.offset(side))) return true
         }
-
         return false
     }
-
 }

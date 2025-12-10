@@ -12,6 +12,9 @@ import org.kvxd.kiwi.util.RotationUtils
 
 object StandardExecutor : MovementExecutor {
 
+    override val deviationThreshold: Double
+        get() = 0.8
+
     override fun isFinished(node: Node): Boolean = true
 
     override fun execute(node: Node, path: NodePath) {
@@ -19,13 +22,13 @@ object StandardExecutor : MovementExecutor {
         val targetYaw = RotationUtils.getLookYaw(player.entityPos, targetPos)
 
         RotationManager.setTarget(yaw = targetYaw)
-
         MovementController.forward()
 
         InputOverride.state.sprint = MovementController.shouldSprint(player, path)
 
-        val deltaY = targetPos.y - player.y
-        if (node.type == MovementType.JUMP || (player.isTouchingWater && deltaY > 0)) {
+        if (node.type == MovementType.JUMP) {
+            InputOverride.state.jump = true
+        } else if (player.isTouchingWater && targetPos.y > player.y) {
             InputOverride.state.jump = true
         }
     }

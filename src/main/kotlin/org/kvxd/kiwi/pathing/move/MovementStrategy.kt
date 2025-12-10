@@ -10,16 +10,17 @@ interface MovementStrategy {
     fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>)
 }
 
-abstract class AbstractMovement(private val type: MovementType) : MovementStrategy {
+abstract class AbstractMovement(private val defaultType: MovementType) : MovementStrategy {
 
     protected fun MutableList<Node>.append(
         pos: BlockPos,
         parent: Node,
         target: BlockPos,
-        baseCost: Double
+        baseCost: Double,
+        typeOverride: MovementType? = null
     ) {
         val g = parent.costG + baseCost
         val h = sqrt(pos.getSquaredDistance(target))
-        this.add(Node(pos, parent, g, h, type))
+        this.add(Node(pos, parent, g, h, typeOverride ?: defaultType))
     }
 }

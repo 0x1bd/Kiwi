@@ -19,28 +19,27 @@ object MineExecutor : MovementExecutor {
 
     override fun isFinished(node: Node): Boolean {
         val required = getRequiredBlocks(node)
-        return required.all { CollisionCache.isPassable(it) }
+        val blocksBroken = required.all { CollisionCache.isPassable(it) }
+
+        return blocksBroken
     }
 
     override fun execute(node: Node, path: NodePath) {
         MovementController.stop()
 
         val required = getRequiredBlocks(node)
-
         val targetBlock = required.firstOrNull { CollisionCache.isSolid(it) }
 
         if (targetBlock == null) {
             if (node.pos.y > player.blockPos.y) {
-                if (player.isOnGround) InputOverride.state.jump = true
-                StandardExecutor.execute(node, path)
-            } else {
-                StandardExecutor.execute(node, path)
+                InputOverride.state.jump = true
             }
+            StandardExecutor.execute(node, path)
             return
         }
 
         val state = world.getBlockState(targetBlock)
-        if (state != null) {
+        if (state != null && !state.isAir) {
             MiningUtil.selectBestTool(state)
         }
 
@@ -54,6 +53,8 @@ object MineExecutor : MovementExecutor {
                 RotationUtils.getDirection(targetBlock)
             )
             client.player?.swingHand(Hand.MAIN_HAND)
+        } else {
+            client.interactionManager?.cancelBlockBreaking()
         }
     }
 
@@ -68,11 +69,11 @@ object MineExecutor : MovementExecutor {
             list.add(node.pos.up())
         } else if (delta.y < 0) {
             list.add(node.pos)
-        } else {
             list.add(node.pos.up())
+        } else {
             list.add(node.pos)
+            list.add(node.pos.up())
         }
         return list
     }
-
 }

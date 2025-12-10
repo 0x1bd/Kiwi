@@ -14,7 +14,7 @@ class RepathThread(
     override fun run() {
         CollisionCache.clearCache()
 
-        val result = AStar().calculate(start, goal)
+        val result = ThetaStar().calculate(start, goal)
 
         CollisionCache.clearCache()
 

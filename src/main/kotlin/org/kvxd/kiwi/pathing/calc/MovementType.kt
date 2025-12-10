@@ -8,12 +8,14 @@ import org.kvxd.kiwi.pathing.execute.types.StandardExecutor
 
 enum class MovementType(
     val canSprint: Boolean,
+    val isSmoothable: Boolean,
     val executor: MovementExecutor
 ) {
-    WALK(true, StandardExecutor),
-    DIAGONAL(true, StandardExecutor),
-    JUMP(true, StandardExecutor),
-    DROP(false, DropExecutor),
-    PILLAR(false, PillarExecutor),
-    MINE(false, MineExecutor)
+
+    TRAVEL(true, true, StandardExecutor),
+    JUMP(true, false, StandardExecutor),
+
+    DROP(false, false, DropExecutor),
+    PILLAR(false, false, PillarExecutor),
+    MINE(false, false, MineExecutor)
 }
