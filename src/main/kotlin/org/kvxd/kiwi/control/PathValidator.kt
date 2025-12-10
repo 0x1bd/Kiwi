@@ -17,10 +17,8 @@ object PathValidator {
 
         if (!isValidNode(current)) return true
 
-        if (prev != null && current.type.isSmoothable) {
-            if (!LineOfSight.check(prev, current)) {
-                return true
-            }
+        if (prev != null) {
+            if (!validateTransition(prev, current)) return true
         }
 
         val lookahead = min(path.size, path.index + 3)
@@ -30,12 +28,7 @@ object PathValidator {
             val nextNode = path[i] ?: continue
 
             if (!isValidNode(nextNode)) return true
-
-            if (nextNode.type.isSmoothable) {
-                if (!LineOfSight.check(previousNodeForLookahead, nextNode)) {
-                    return true
-                }
-            }
+            if (!validateTransition(previousNodeForLookahead, nextNode)) return true
 
             previousNodeForLookahead = nextNode
         }
@@ -49,6 +42,31 @@ object PathValidator {
             if (!CollisionCache.isPassable(node.pos.up())) return false
         }
 
+        return true
+    }
+
+    private fun validateTransition(prev: Node, current: Node): Boolean {
+        when (current.type) {
+            MovementType.TRAVEL -> {
+                if (!LineOfSight.check(prev, current)) return false
+            }
+
+            MovementType.JUMP -> {
+                if (!CollisionCache.isPassable(prev.pos.up(2))) return false
+
+                if (!CollisionCache.isSolid(current.pos.down())) return false
+                if (!CollisionCache.isPassable(current.pos.up())) return false
+            }
+
+            MovementType.DROP -> {
+                if (!CollisionCache.isPassable(prev.pos.up())) return false
+                if (!CollisionCache.isSolid(current.pos.down())) return false
+            }
+
+            else -> {
+                // should be handled by executors
+            }
+        }
         return true
     }
 }
