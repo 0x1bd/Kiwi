@@ -1,0 +1,39 @@
+name: Publish Development Build
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Build with Gradle
+        run: ./gradlew build --build-cache
+
+      - name: Publish Snapshot Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: snapshot
+          name: "Development Snapshot"
+          prerelease: true
+          allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          commit: ${{ github.sha }}
+          artifacts: build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
