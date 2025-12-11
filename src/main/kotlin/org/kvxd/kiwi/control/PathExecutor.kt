@@ -1,5 +1,12 @@
 package org.kvxd.kiwi.control
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.client
 import org.kvxd.kiwi.control.input.InputOverride
@@ -8,14 +15,18 @@ import org.kvxd.kiwi.pathing.calc.MovementType
 import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.calc.PathResult
-import org.kvxd.kiwi.pathing.calc.RepathThread
+import org.kvxd.kiwi.pathing.calc.ThetaStar
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
+import org.kvxd.kiwi.util.PathProfiler
+import org.kvxd.kiwi.util.coroutine.ClientDispatcher
 import org.kvxd.kiwi.util.math.horizontalDistanceSqr
 import kotlin.math.min
 
 object PathExecutor {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     var path: NodePath = NodePath(emptyList())
         private set
@@ -42,6 +53,9 @@ object PathExecutor {
         pathingId++
         active = false
         calculating = false
+
+        scope.coroutineContext.cancelChildren()
+
         path = NodePath(emptyList())
         currentGoal = null
         stuckTicks = 0
@@ -174,6 +188,20 @@ object PathExecutor {
         return false
     }
 
+    suspend fun calculatePathAsync(
+        start: BlockPos,
+        goal: Goal
+    ): PathResult = withContext(Dispatchers.Default) {
+
+        CollisionCache.clearCache()
+
+        val result = ThetaStar().calculate(start, goal)
+
+        CollisionCache.clearCache()
+
+        result
+    }
+
     private fun repath() {
         val start = player.blockPosition()
         val goal = currentGoal ?: return
@@ -182,9 +210,13 @@ object PathExecutor {
         val reqId = pathingId
         calculating = true
 
-        RepathThread(start, goal) { result ->
-            client.execute { handlePathResult(result, reqId) }
-        }.start()
+        scope.launch {
+            val result = calculatePathAsync(start, goal)
+
+            withContext(ClientDispatcher) {
+                handlePathResult(result, reqId)
+            }
+        }
     }
 
     private fun handlePathResult(result: PathResult, reqId: Int) {
@@ -192,6 +224,8 @@ object PathExecutor {
 
         calculating = false
         val success = result.path != null && !result.path.isEmpty
+
+        PathProfiler.record(result, success)
 
         if (!success) {
             ClientMessenger.error("No path found.")

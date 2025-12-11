@@ -59,6 +59,10 @@ object CollisionCache {
         return ground == SOLID || ground == UNSTABLE
     }
 
+    fun isObstructed(pos: BlockPos): Boolean {
+        return CollisionCache.isSolid(pos) || CollisionCache.isDangerous(pos)
+    }
+
     private fun resolve(x: Int, y: Int, z: Int): Byte {
         val key = BlockPos.asLong(x, y, z)
         val map = cache.get()

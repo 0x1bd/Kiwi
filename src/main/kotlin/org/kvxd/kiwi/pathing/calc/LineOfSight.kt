@@ -20,7 +20,10 @@ object LineOfSight {
         val dir = endVec.subtract(startVec)
         if (dir.lengthSqr() < 0.0001) return true
 
-        if (!isWalkableRay(startVec, endVec, requireGround = true)) return false
+        val isWater = end.type == MovementType.WATER_WALK
+        val requireGround = !isWater
+
+        if (!isSafeRay(startVec, endVec, requireGround, isWater)) return false
 
         val perp = Vec3(-dir.z, 0.0, dir.x).normalize().multiply(RADIUS, RADIUS, RADIUS)
 
@@ -29,13 +32,13 @@ object LineOfSight {
         val s2 = startVec.subtract(perp)
         val e2 = endVec.subtract(perp)
 
-        if (!isWalkableRay(s1, e1, requireGround = true)) return false
-        if (!isWalkableRay(s2, e2, requireGround = true)) return false
+        if (!isSafeRay(s1, e1, requireGround, isWater)) return false
+        if (!isSafeRay(s2, e2, requireGround, isWater)) return false
 
         return true
     }
 
-    private fun isWalkableRay(start: Vec3, end: Vec3, requireGround: Boolean): Boolean {
+    private fun isSafeRay(start: Vec3, end: Vec3, requireGround: Boolean, allowWater: Boolean): Boolean {
         val x1 = start.x; val y1 = start.y; val z1 = start.z
         val x2 = end.x;   val y2 = end.y;   val z2 = end.z
 
@@ -55,21 +58,26 @@ object LineOfSight {
         val mutablePos = BlockPos.MutableBlockPos()
 
         for (i in 0..steps) {
-            mutablePos.set(floor(cx).toInt(), floor(cy).toInt(), floor(cz).toInt())
+            val ix = floor(cx).toInt()
+            val iy = floor(cy).toInt()
+            val iz = floor(cz).toInt()
 
-            if (!CollisionCache.isPassable(mutablePos)) return false
+            mutablePos.set(ix, iy, iz)
 
-            mutablePos.setY(floor(cy).toInt() + 1)
-            if (!CollisionCache.isPassable(mutablePos)) return false
+            if (!isPassable(mutablePos, allowWater)) return false
+
+            mutablePos.setY(iy + 1)
+            if (!isPassable(mutablePos, allowWater)) return false
 
             if (requireGround) {
-                mutablePos.setY(floor(cy).toInt() - 1)
+                mutablePos.setY(iy - 1)
                 if (!CollisionCache.isSolid(mutablePos)) return false
             }
 
-            mutablePos.setY(floor(cy).toInt())
+            mutablePos.setY(iy)
             if (CollisionCache.isDangerous(mutablePos)) return false
-            mutablePos.setY(floor(cy).toInt() - 1)
+
+            mutablePos.setY(iy - 1)
             if (CollisionCache.isDangerous(mutablePos)) return false
 
             cx += dx
@@ -78,5 +86,12 @@ object LineOfSight {
         }
 
         return true
+    }
+
+    private fun isPassable(pos: BlockPos, allowWater: Boolean): Boolean {
+        if (CollisionCache.isPassable(pos)) return true
+        if (allowWater && CollisionCache.hasState(pos, CollisionCache.WATER)) return true
+
+        return false
     }
 }

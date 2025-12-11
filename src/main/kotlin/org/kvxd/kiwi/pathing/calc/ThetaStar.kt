@@ -22,16 +22,15 @@ class ThetaStar {
         closedSet.clear()
         nodeRegistry.clear()
 
-        CollisionCache.clearCache()
-
         val hStart = goal.getHeuristic(start)
-        val startNode = Node(start, null, 0.0, hStart, MovementType.TRAVEL)
+
+        val startNode = MovementProvider.getStartNode(start, hStart)
 
         openSet.add(startNode)
-        nodeRegistry[start.asLong()] = startNode
+        nodeRegistry[startNode.posLong] = startNode
 
         var bestNode: Node = startNode
-        var bestH = hStart
+        var bestH = startNode.costH
 
         var iterations = 0
         var nodesVisited = 0
@@ -92,7 +91,6 @@ class ThetaStar {
                 if (potentialParent != null &&
                     (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP)
                 ) {
-
                     if (neighborNode.pos.y > potentialParent.pos.y) {
                         finalType = MovementType.JUMP
                     }

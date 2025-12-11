@@ -12,19 +12,48 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
     private const val COST_FLAT = 1.0
     private const val COST_DIAGONAL = 1.414
     private const val COST_JUMP = 1.2
-
     private const val COST_WATER = 1.5
     private const val COST_WATER_DIAGONAL = 2.12
     private const val COST_WATER_UP = 2.0
     private const val MAX_BREATH_DIST = 15
 
-    private val DIAGONAL_OFFSETS = arrayOf(
-        1 to 1, 1 to -1, -1 to 1, -1 to -1
-    )
+    private val DIAGONAL_OFFSETS = arrayOf(1 to 1, 1 to -1, -1 to 1, -1 to -1)
+    private val CARDINAL_OFFSETS = arrayOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
-    private val CARDINAL_OFFSETS = arrayOf(
-        1 to 0, -1 to 0, 0 to 1, 0 to -1
-    )
+    override fun getStartNode(start: BlockPos): Node? {
+        if (!CollisionCache.hasState(start, CollisionCache.WATER)) return null
+        if (!ConfigData.allowWater) return null
+
+        if (!CollisionCache.hasState(start.above(), CollisionCache.WATER)) return null
+
+        var currentPos = start
+        var currentNode = Node(start, null, 0.0, 0.0, MovementType.WATER_WALK)
+
+        for (i in 0 until 64) {
+            val up = currentPos.above()
+
+            if (CollisionCache.isSolid(up) || CollisionCache.isDangerous(up)) break
+
+            if (!CollisionCache.hasState(up, CollisionCache.WATER)) {
+                return currentNode
+            }
+
+            currentPos = up
+            val newG = currentNode.costG + COST_WATER_UP
+
+            val nextNode = Node(
+                currentPos,
+                currentNode,
+                newG,
+                0.0,
+                MovementType.WATER_WALK
+            )
+
+            currentNode = nextNode
+        }
+
+        return null
+    }
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val start = current.pos
@@ -67,19 +96,10 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
             val cost = if (isDiagonal) COST_WATER_DIAGONAL else COST_WATER
 
             if (isDiagonal) {
-                if (CollisionCache.isSolid(start.offset(dx, 0, 0)) ||
-                    CollisionCache.isSolid(start.offset(0, 0, dz))
-                ) {
+                if (!isSafeDiagonal(start, dx, dz)) {
                     return
                 }
-                val n1 = start.offset(dx, 0, 0)
-                val n2 = start.offset(0, 0, dz)
-                val safe1 = CollisionCache.isSolid(n1.below()) || CollisionCache.hasState(n1, CollisionCache.WATER)
-                val safe2 = CollisionCache.isSolid(n2.below()) || CollisionCache.hasState(n2, CollisionCache.WATER)
-
-                if (!safe1 || !safe2) return
             }
-
             output.append(offset, current, target, cost, MovementType.WATER_WALK)
             return
         }
@@ -88,14 +108,7 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
 
         if (CollisionCache.isWalkable(offset)) {
             if (isDiagonal) {
-                if (CollisionCache.isSolid(start.offset(dx, 0, 0)) ||
-                    CollisionCache.isSolid(start.offset(0, 0, dz))
-                ) {
-                    return
-                }
-                if (!CollisionCache.isSolid(start.offset(dx, 0, 0).below()) ||
-                    !CollisionCache.isSolid(start.offset(0, 0, dz).below())
-                ) {
+                if (!isSafeDiagonal(start, dx, dz)) {
                     return
                 }
             }
@@ -125,10 +138,24 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
                 CollisionCache.hasState(offset.below(), CollisionCache.WATER)
             ) {
                 if (!ConfigData.allowWater) return
-
                 output.append(offset.below(), current, target, COST_FLAT, MovementType.WATER_WALK)
             }
         }
+    }
+
+    private fun isSafeDiagonal(start: BlockPos, dx: Int, dz: Int): Boolean {
+        val n1 = start.offset(dx, 0, 0)
+        val n2 = start.offset(0, 0, dz)
+
+        if (CollisionCache.isObstructed(n1) || CollisionCache.isObstructed(n2)) return false
+
+        val n1Up = n1.above()
+        val n2Up = n2.above()
+        if (CollisionCache.isObstructed(n1Up) || CollisionCache.isObstructed(n2Up)) return false
+
+        val safe1 = CollisionCache.isSolid(n1.below()) || CollisionCache.hasState(n1, CollisionCache.WATER)
+        val safe2 = CollisionCache.isSolid(n2.below()) || CollisionCache.hasState(n2, CollisionCache.WATER)
+        return !(!safe1 || !safe2)
     }
 
     private fun getDistanceToSurface(start: BlockPos): Int {

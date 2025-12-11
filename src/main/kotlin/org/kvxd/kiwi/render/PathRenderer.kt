@@ -12,13 +12,13 @@ import java.awt.Color
 
 object PathRenderer {
 
-    private val COLOR_WALK = Color(0, 255, 0, 200)
-    private val COLOR_JUMP = Color(0, 100, 255, 200)
-    private val COLOR_DROP = Color(255, 50, 50, 200)
-    private val COLOR_PILLAR = Color(255, 165, 0, 200)
-    private val COLOR_MINE = Color(255, 105, 180, 200)
-    private val COLOR_WATER_WALK = Color(255, 105, 180, 200)
-    private val COLOR_DEST = Color(255, 0, 255, 255)
+    private val COLOR_WALK = Color(38, 248, 10, 200)
+    private val COLOR_JUMP = Color(52, 8, 243, 200)
+    private val COLOR_DROP = Color(240, 24, 10, 200)
+    private val COLOR_PILLAR = Color(33, 204, 249, 200)
+    private val COLOR_MINE = Color(235, 108, 196, 200)
+    private val COLOR_WATER_WALK = Color(239, 212, 118, 200)
+    private val COLOR_DEST = Color(41, 244, 175, 255)
 
     private const val LINE_WIDTH = 3.0f
     private const val NODE_SIZE = 0.15

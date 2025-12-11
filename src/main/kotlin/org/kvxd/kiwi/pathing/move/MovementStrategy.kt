@@ -8,6 +8,8 @@ import kotlin.math.sqrt
 interface MovementStrategy {
 
     fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>)
+
+    fun getStartNode(start: BlockPos): Node? = null
 }
 
 abstract class AbstractMovement(private val defaultType: MovementType) : MovementStrategy {

@@ -7,7 +7,7 @@ data class Node(
     val pos: BlockPos,
     var parent: Node?,
     var costG: Double,
-    val costH: Double,
+    var costH: Double,
     var type: MovementType,
     var heapIndex: Int = -1
 ) : Comparable<Node> {
