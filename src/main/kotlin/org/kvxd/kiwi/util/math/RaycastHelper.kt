@@ -1,4 +1,4 @@
-package org.kvxd.kiwi.util
+package org.kvxd.kiwi.util.math
 
 import net.minecraft.world.entity.projectile.ProjectileUtil
 import net.minecraft.world.level.ClipContext

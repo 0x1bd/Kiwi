@@ -12,7 +12,7 @@ import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
-import org.kvxd.kiwi.util.RotationUtils
+import org.kvxd.kiwi.util.math.RotationUtils
 import org.kvxd.kiwi.level
 
 object MineExecutor : MovementExecutor {

@@ -15,6 +15,8 @@ enum class MovementType(
     TRAVEL(true, true, StandardExecutor),
     JUMP(true, false, StandardExecutor),
 
+    WATER_WALK(false, true, StandardExecutor),
+
     DROP(false, false, DropExecutor),
     PILLAR(false, false, PillarExecutor),
     MINE(false, false, MineExecutor)

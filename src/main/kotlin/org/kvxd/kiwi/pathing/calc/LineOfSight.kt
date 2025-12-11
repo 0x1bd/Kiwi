@@ -8,7 +8,6 @@ import kotlin.math.max
 
 object LineOfSight {
 
-    //This should be .6 but .8 fixes some weird behaviour
     private const val PLAYER_WIDTH = 0.8
     private const val RADIUS = PLAYER_WIDTH / 2.0
 
@@ -27,22 +26,18 @@ object LineOfSight {
 
         val s1 = startVec.add(perp)
         val e1 = endVec.add(perp)
-        val leftClear = isWalkableRay(s1, e1, requireGround = false)
-
         val s2 = startVec.subtract(perp)
         val e2 = endVec.subtract(perp)
-        val rightClear = isWalkableRay(s2, e2, requireGround = false)
 
-        return !(!leftClear || !rightClear)
+        if (!isWalkableRay(s1, e1, requireGround = true)) return false
+        if (!isWalkableRay(s2, e2, requireGround = true)) return false
+
+        return true
     }
 
     private fun isWalkableRay(start: Vec3, end: Vec3, requireGround: Boolean): Boolean {
-        val x1 = start.x
-        val y1 = start.y
-        val z1 = start.z
-        val x2 = end.x
-        val y2 = end.y
-        val z2 = end.z
+        val x1 = start.x; val y1 = start.y; val z1 = start.z
+        val x2 = end.x;   val y2 = end.y;   val z2 = end.z
 
         val distSq = (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2)
         if (distSq > 256.0) return false
@@ -69,10 +64,7 @@ object LineOfSight {
 
             if (requireGround) {
                 mutablePos.setY(floor(cy).toInt() - 1)
-                if (!CollisionCache.isSolid(mutablePos)) {
-                    mutablePos.setY(floor(cy).toInt() - 2)
-                    if (!CollisionCache.isSolid(mutablePos)) return false
-                }
+                if (!CollisionCache.isSolid(mutablePos)) return false
             }
 
             mutablePos.setY(floor(cy).toInt())

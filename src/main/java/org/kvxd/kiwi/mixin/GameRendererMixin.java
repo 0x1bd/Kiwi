@@ -6,7 +6,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.kvxd.kiwi.control.RotationManager;
-import org.kvxd.kiwi.util.RaycastHelper;
+import org.kvxd.kiwi.util.math.RaycastHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

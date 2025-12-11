@@ -3,7 +3,7 @@ package org.kvxd.kiwi.control
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.control.input.InputOverride
 import org.kvxd.kiwi.player
-import org.kvxd.kiwi.util.RotationUtils
+import org.kvxd.kiwi.util.math.RotationUtils
 
 object RotationManager {
 

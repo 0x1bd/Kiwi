@@ -8,7 +8,7 @@ import org.kvxd.kiwi.pathing.calc.Node
 import org.kvxd.kiwi.pathing.calc.NodePath
 import org.kvxd.kiwi.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
-import org.kvxd.kiwi.util.RotationUtils
+import org.kvxd.kiwi.util.math.RotationUtils
 
 object StandardExecutor : MovementExecutor {
 
@@ -18,18 +18,21 @@ object StandardExecutor : MovementExecutor {
     override fun isFinished(node: Node): Boolean = true
 
     override fun execute(node: Node, path: NodePath) {
-        val targetPos = node.toVec()
-        val targetYaw = RotationUtils.getLookYaw(player.position(), targetPos)
+        val currentTarget = node.toVec()
 
-        RotationManager.setTarget(yaw = targetYaw)
-        MovementController.forward()
+        val rotations = RotationUtils.getLookRotations(currentTarget)
+        RotationManager.setTarget(yaw = rotations.x, pitch = 0f)
+
+        MovementController.moveToward(currentTarget)
 
         InputOverride.state.sprint = MovementController.shouldSprint(path)
 
         if (node.type == MovementType.JUMP) {
             InputOverride.state.jump = true
-        } else if (player.isInWater && targetPos.y > player.y) {
-            InputOverride.state.jump = true
+        } else if (player.isInWater) {
+            if (currentTarget.y > player.y || player.isUnderWater) {
+                InputOverride.state.jump = true
+            }
         }
     }
 }

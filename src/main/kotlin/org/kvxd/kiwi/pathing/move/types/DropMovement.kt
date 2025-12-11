@@ -21,16 +21,28 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
             if (CollisionCache.isSolid(ledge) || CollisionCache.isSolid(ledge.above())) continue
 
             var currentDropPos = ledge
-            val maxFall = ConfigData.maxFallHeight
 
-            for (i in 1..maxFall) {
+            for (i in 1..256) {
                 currentDropPos = currentDropPos.below()
 
                 if (!CollisionCache.isPassable(currentDropPos)) break
 
-                if (CollisionCache.isSolid(currentDropPos.below())) {
-                    val cost = BASE_COST + (i * 0.5)
-                    output.append(currentDropPos, current, target, cost)
+                val landingBlock = currentDropPos.below()
+
+                if (CollisionCache.hasState(landingBlock, CollisionCache.WATER)) {
+                    if (ConfigData.allowWater) {
+                        val cost = BASE_COST + (i * 0.2)
+                        output.append(currentDropPos, current, target, cost)
+                    }
+
+                    break
+                }
+
+                if (CollisionCache.isSolid(landingBlock)) {
+                    if (i <= ConfigData.maxFallHeight) {
+                        val cost = BASE_COST + (i * 0.5)
+                        output.append(currentDropPos, current, target, cost)
+                    }
                     break
                 }
             }

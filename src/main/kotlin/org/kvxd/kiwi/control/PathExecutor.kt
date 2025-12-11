@@ -12,6 +12,7 @@ import org.kvxd.kiwi.pathing.calc.RepathThread
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
+import org.kvxd.kiwi.util.math.horizontalDistanceSqr
 import kotlin.math.min
 
 object PathExecutor {
@@ -102,14 +103,19 @@ object PathExecutor {
         val targetPos = path.current()!!.toVec()
         val prevNode = path.previous()
 
-        if (path.current()?.type != MovementType.DROP && path.current()?.type != MovementType.MINE) {
+        val currentType = path.current()?.type
+        if (currentType != MovementType.DROP &&
+            currentType != MovementType.MINE &&
+            currentType != MovementType.WATER_WALK
+        ) {
+
             val minSegmentY = if (prevNode != null) {
                 min(prevNode.pos.y.toDouble(), targetPos.y)
             } else {
                 targetPos.y
             }
 
-            if (playerPos.y < minSegmentY - 1.0) {
+            if (playerPos.y < minSegmentY - 1.5) {
                 ClientMessenger.debug("Vertical Deviation.")
                 repath()
                 return true
@@ -119,9 +125,7 @@ object PathExecutor {
         val deviationSq: Double = if (prevNode != null) {
             getSquaredDistanceToSegment(playerPos, prevNode.toVec(), targetPos)
         } else {
-            val dX = playerPos.x - targetPos.x
-            val dZ = playerPos.z - targetPos.z
-            dX * dX + dZ * dZ
+            playerPos.horizontalDistanceSqr(targetPos)
         }
 
         if (deviationSq > threshold * threshold) {
@@ -133,8 +137,8 @@ object PathExecutor {
     }
 
     private fun getSquaredDistanceToSegment(p: Vec3, a: Vec3, b: Vec3): Double {
-        val l2 = (b.x - a.x) * (b.x - a.x) + (b.z - a.z) * (b.z - a.z)
-        if (l2 == 0.0) return (p.x - a.x) * (p.x - a.x) + (p.z - a.z) * (p.z - a.z)
+        val l2 = a.horizontalDistanceSqr(b)
+        if (l2 == 0.0) return p.horizontalDistanceSqr(a)
 
         var t = ((p.x - a.x) * (b.x - a.x) + (p.z - a.z) * (b.z - a.z)) / l2
         t = t.coerceIn(0.0, 1.0)
@@ -150,6 +154,7 @@ object PathExecutor {
 
     private fun checkStuck(currentNode: Node): Boolean {
         if (!player.onGround() && !player.isInWater) return false
+
         if (currentNode.type == MovementType.MINE || currentNode.type == MovementType.PILLAR) return false
 
         val currentPos = player.position()

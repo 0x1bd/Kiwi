@@ -17,6 +17,7 @@ object PathRenderer {
     private val COLOR_DROP = Color(255, 50, 50, 200)
     private val COLOR_PILLAR = Color(255, 165, 0, 200)
     private val COLOR_MINE = Color(255, 105, 180, 200)
+    private val COLOR_WATER_WALK = Color(255, 105, 180, 200)
     private val COLOR_DEST = Color(255, 0, 255, 255)
 
     private const val LINE_WIDTH = 3.0f
@@ -101,6 +102,7 @@ object PathRenderer {
             MovementType.DROP -> COLOR_DROP
             MovementType.PILLAR -> COLOR_PILLAR
             MovementType.MINE -> COLOR_MINE
+            MovementType.WATER_WALK -> COLOR_WATER_WALK
         }
     }
 }

@@ -29,9 +29,16 @@ object InputOverride {
         }
 
         var use by flag { pressed ->
-            val mouseButton = 1
+            val key = InputConstants.Type.MOUSE.getOrCreate(1)
+            KeyMapping.set(key, pressed)
 
-            val key = InputConstants.Type.MOUSE.getOrCreate(mouseButton)
+            if (pressed) {
+                KeyMapping.click(key)
+            }
+        }
+
+        var attack by flag { pressed ->
+            val key = InputConstants.Type.MOUSE.getOrCreate(0)
             KeyMapping.set(key, pressed)
 
             if (pressed) {
