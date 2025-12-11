@@ -48,13 +48,7 @@ object MineExecutor : MovementExecutor {
         RotationManager.setTarget(rots.x, rots.y)
 
         if (RotationUtils.isLookingAt(center, 0.6)) {
-            client.gameMode?.continueDestroyBlock(
-                targetBlock,
-                RotationUtils.getDirection(targetBlock)
-            )
-            client.player?.swing(InteractionHand.MAIN_HAND)
-        } else {
-            client.gameMode?.stopDestroyBlock()
+            InputOverride.state.attack = true
         }
     }
 

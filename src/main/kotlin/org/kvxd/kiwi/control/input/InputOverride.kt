@@ -60,6 +60,7 @@ object InputOverride {
             sneak = false
             sprint = false
             use = false
+            attack = false
         }
     }
 
