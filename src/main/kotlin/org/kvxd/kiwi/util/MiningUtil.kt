@@ -75,8 +75,8 @@ object MiningUtil {
             speed *= (1.0f + lvl * 0.2f)
         }
 
-        if (player.hasEffect(MobEffects.HASTE)) {
-            val lvl = player.getEffect(MobEffects.HASTE)!!.amplifier
+        if (player.hasEffect(MobEffects.MINING_FATIGUE)) {
+            val lvl = player.getEffect(MobEffects.MINING_FATIGUE)!!.amplifier
             speed *= when (lvl) {
                 0 -> 0.3f
                 1 -> 0.09f

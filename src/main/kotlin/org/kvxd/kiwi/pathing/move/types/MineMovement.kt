@@ -11,9 +11,8 @@ import org.kvxd.kiwi.util.MiningUtil
 
 object MineMovement : AbstractMovement(MovementType.MINE) {
 
-    private const val TIME_PENALTY = 6.0
-
-    private const val BASE_MINING_COST = 15.0
+    private const val TIME_PENALTY = 4.0
+    private const val BASE_MINING_COST = 10.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         if (!ConfigData.allowBreak) return
@@ -23,7 +22,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
         for (dir in Direction.entries) {
             val dest = start.relative(dir)
 
-            if (CollisionCache.isWalkable(dest) && dir != Direction.DOWN) continue
+            if (CollisionCache.isWalkable(dest) && dir != Direction.DOWN && dir != Direction.UP) continue
 
             val blocksToBreak = getBlocksToBreak(start, dir)
 
@@ -55,9 +54,7 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
             if (possible) {
                 var cost = BASE_MINING_COST + (totalTime * TIME_PENALTY)
 
-                if (dir == Direction.UP) {
-                    cost += 5.0
-                }
+                if (dir == Direction.UP) cost += 3.0
 
                 output.append(dest, current, target, cost)
             }
@@ -68,22 +65,10 @@ object MineMovement : AbstractMovement(MovementType.MINE) {
         val dest = start.relative(dir)
         val list = ArrayList<BlockPos>(2)
 
-        when (dir) {
-            Direction.UP -> {
-                if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
-            }
+        if (CollisionCache.isSolid(dest)) list.add(dest)
 
-            Direction.DOWN -> {
-                if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
-            }
-
-            else -> {
-                if (CollisionCache.isSolid(dest)) list.add(dest)
-                if (CollisionCache.isSolid(dest.above())) list.add(dest.above())
-            }
-        }
+        val head = dest.above()
+        if (CollisionCache.isSolid(head)) list.add(head)
 
         return list
     }

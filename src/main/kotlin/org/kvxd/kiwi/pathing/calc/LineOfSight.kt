@@ -18,7 +18,7 @@ object LineOfSight {
         val endVec = end.toVec()
 
         val dir = endVec.subtract(startVec)
-        if (dir.horizontalDistanceSqr() < 0.0001) return true
+        if (dir.lengthSqr() < 0.0001) return true
 
         if (!isWalkableRay(startVec, endVec, requireGround = true)) return false
 
