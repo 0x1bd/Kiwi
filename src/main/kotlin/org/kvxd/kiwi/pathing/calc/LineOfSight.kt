@@ -3,8 +3,9 @@ package org.kvxd.kiwi.pathing.calc
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.pathing.cache.CollisionCache
+import kotlin.math.abs
 import kotlin.math.floor
-import kotlin.math.max
+import kotlin.math.sign
 
 object LineOfSight {
 
@@ -39,50 +40,72 @@ object LineOfSight {
     }
 
     private fun isSafeRay(start: Vec3, end: Vec3, requireGround: Boolean, allowWater: Boolean): Boolean {
-        val x1 = start.x; val y1 = start.y; val z1 = start.z
-        val x2 = end.x;   val y2 = end.y;   val z2 = end.z
+        if (start.distanceToSqr(end) > 256.0) return false
 
-        val distSq = (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2)
-        if (distSq > 256.0) return false
+        var x = floor(start.x).toInt()
+        var y = floor(start.y).toInt()
+        var z = floor(start.z).toInt()
 
-        val steps = max(distSq, 10.0).toInt()
+        val endX = floor(end.x).toInt()
+        val endY = floor(end.y).toInt()
+        val endZ = floor(end.z).toInt()
 
-        val dx = (x2 - x1) / steps
-        val dy = (y2 - y1) / steps
-        val dz = (z2 - z1) / steps
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        val dz = end.z - start.z
 
-        var cx = x1
-        var cy = y1
-        var cz = z1
+        val stepX = sign(dx).toInt()
+        val stepY = sign(dy).toInt()
+        val stepZ = sign(dz).toInt()
+
+        val tDeltaX = if (dx == 0.0) Double.MAX_VALUE else abs(1.0 / dx)
+        val tDeltaY = if (dy == 0.0) Double.MAX_VALUE else abs(1.0 / dy)
+        val tDeltaZ = if (dz == 0.0) Double.MAX_VALUE else abs(1.0 / dz)
+
+        var tMaxX = if (dx == 0.0) Double.MAX_VALUE else (if (stepX > 0) floor(start.x) + 1.0 - start.x else start.x - floor(start.x)) * tDeltaX
+        var tMaxY = if (dy == 0.0) Double.MAX_VALUE else (if (stepY > 0) floor(start.y) + 1.0 - start.y else start.y - floor(start.y)) * tDeltaY
+        var tMaxZ = if (dz == 0.0) Double.MAX_VALUE else (if (stepZ > 0) floor(start.z) + 1.0 - start.z else start.z - floor(start.z)) * tDeltaZ
 
         val mutablePos = BlockPos.MutableBlockPos()
 
-        for (i in 0..steps) {
-            val ix = floor(cx).toInt()
-            val iy = floor(cy).toInt()
-            val iz = floor(cz).toInt()
-
-            mutablePos.set(ix, iy, iz)
+        while (true) {
+            mutablePos.set(x, y, z)
 
             if (!isPassable(mutablePos, allowWater)) return false
 
-            mutablePos.setY(iy + 1)
+            mutablePos.setY(y + 1)
             if (!isPassable(mutablePos, allowWater)) return false
 
             if (requireGround) {
-                mutablePos.setY(iy - 1)
+                mutablePos.setY(y - 1)
                 if (!CollisionCache.isSolid(mutablePos)) return false
             }
 
-            mutablePos.setY(iy)
+            mutablePos.setY(y)
             if (CollisionCache.isDangerous(mutablePos)) return false
 
-            mutablePos.setY(iy - 1)
+            mutablePos.setY(y - 1)
             if (CollisionCache.isDangerous(mutablePos)) return false
 
-            cx += dx
-            cy += dy
-            cz += dz
+            if (x == endX && y == endY && z == endZ) break
+
+            if (tMaxX < tMaxY) {
+                if (tMaxX < tMaxZ) {
+                    x += stepX
+                    tMaxX += tDeltaX
+                } else {
+                    z += stepZ
+                    tMaxZ += tDeltaZ
+                }
+            } else {
+                if (tMaxY < tMaxZ) {
+                    y += stepY
+                    tMaxY += tDeltaY
+                } else {
+                    z += stepZ
+                    tMaxZ += tDeltaZ
+                }
+            }
         }
 
         return true
