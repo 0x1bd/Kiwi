@@ -55,6 +55,11 @@ object ClientMessenger {
         player.displayClientMessage(finalMessage, false)
     }
 
+    fun sendActionBar(text: String, color: ChatFormatting = ChatFormatting.GREEN) {
+        val msg = Component.literal(text).withStyle(color)
+        player.displayClientMessage(msg, true)
+    }
+
     fun feedback(msg: String) {
         send { text(msg, ChatFormatting.WHITE) }
     }

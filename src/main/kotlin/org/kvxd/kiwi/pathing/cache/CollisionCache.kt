@@ -2,6 +2,7 @@ package org.kvxd.kiwi.pathing.cache
 
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.block.CactusBlock
 import net.minecraft.world.level.block.CampfireBlock
@@ -60,7 +61,7 @@ object CollisionCache {
     }
 
     fun isObstructed(pos: BlockPos): Boolean {
-        return CollisionCache.isSolid(pos) || CollisionCache.isDangerous(pos)
+        return isSolid(pos) || isDangerous(pos)
     }
 
     private fun resolve(x: Int, y: Int, z: Int): Byte {
@@ -94,7 +95,10 @@ object CollisionCache {
             block is PowderSnowBlock
         ) return DANGER
 
-        if (state.getCollisionShape(level, pos).isEmpty) return PASSABLE
+        val shape = state.getCollisionShape(level, pos)
+        if (shape.isEmpty) return PASSABLE
+
+        if (shape.max(Direction.Axis.Y) <= 0.25) return PASSABLE
 
         val above = level.getBlockState(pos.above()).block
         if (above is FallingBlock ||

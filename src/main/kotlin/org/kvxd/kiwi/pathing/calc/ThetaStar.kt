@@ -2,7 +2,6 @@ package org.kvxd.kiwi.pathing.calc
 
 import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.config.ConfigData
-import org.kvxd.kiwi.pathing.cache.CollisionCache
 import org.kvxd.kiwi.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.pathing.goal.Goal
 import org.kvxd.kiwi.pathing.move.MovementProvider
@@ -37,24 +36,30 @@ class ThetaStar {
 
         val maxOps = ConfigData.maxIterations
 
-        var finalPath: NodePath?
+        var finalPath: NodePath? = null
         var found = false
+        var isPartial = false
 
         while (!openSet.isEmpty()) {
-            if (iterations++ > maxOps) break
+            if (iterations++ > maxOps) {
+                if (bestNode != startNode) {
+                    isPartial = true
+                }
+                break
+            }
 
             val current = openSet.poll() ?: break
             nodesVisited++
+
+            if (current.costH < bestH) {
+                bestH = current.costH
+                bestNode = current
+            }
 
             if (goal.hasReached(current.pos)) {
                 bestNode = current
                 found = true
                 break
-            }
-
-            if (current.costH < bestH) {
-                bestH = current.costH
-                bestNode = current
             }
 
             val currentLong = current.posLong
@@ -88,9 +93,7 @@ class ThetaStar {
                 }
 
                 var finalType = neighborNode.type
-                if (potentialParent != null &&
-                    (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP)
-                ) {
+                if (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP) {
                     if (neighborNode.pos.y > potentialParent.pos.y) {
                         finalType = MovementType.JUMP
                     }
@@ -121,24 +124,23 @@ class ThetaStar {
             }
         }
 
-        val pathStart = bestNode
-        finalPath = reconstructPath(pathStart)
+        if (found || isPartial) {
+            finalPath = reconstructPath(bestNode, isPartial)
+        }
 
         val endTime = System.nanoTime()
         val durationMs = (endTime - startTime) / 1_000_000.0
 
-        val pathSize = finalPath.size
-        val isValid = found || (iterations >= maxOps && pathSize > 1)
-
         return PathResult(
-            path = if (isValid) finalPath else null,
+            path = finalPath,
             nodesVisited = nodesVisited,
             timeComputedMs = durationMs,
-            iterations = iterations
+            iterations = iterations,
+            isPartial = isPartial
         )
     }
 
-    private fun reconstructPath(node: Node): NodePath {
+    private fun reconstructPath(node: Node, isPartial: Boolean): NodePath {
         val list = ArrayList<Node>()
         var curr: Node? = node
         while (curr != null) {
@@ -146,6 +148,6 @@ class ThetaStar {
             curr = curr.parent
         }
         list.reverse()
-        return NodePath(list)
+        return NodePath(list, isPartial)
     }
 }

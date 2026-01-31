@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.client
@@ -41,11 +42,15 @@ object PathExecutor {
     private const val STUCK_THRESHOLD_TICKS = 20
     private const val STUCK_DISTANCE_SQ = 0.0025
 
+    private const val PARTIAL_REPATH_THRESHOLD = 5
+
     fun setGoal(goal: Goal) {
         currentGoal = goal
         active = true
         stuckTicks = 0
         lastPos = player.position()
+
+        ClientMessenger.feedback("Goal set. Pathing...")
         repath()
     }
 
@@ -70,13 +75,14 @@ object PathExecutor {
         if (!InputOverride.isActive) InputOverride.activate()
         InputOverride.reset()
 
-        if (calculating) {
+        if (calculating && path.isEmpty) {
             MovementController.stop()
+            ClientMessenger.sendActionBar("Calculating...", ChatFormatting.YELLOW)
             return
         }
 
         if (path.isEmpty) {
-            repath()
+            if (!calculating) repath()
             return
         }
 
@@ -84,10 +90,15 @@ object PathExecutor {
 
         if (player.tickCount % 10 == 0) {
             if (PathValidator.isPathObstructed(path)) {
-                ClientMessenger.debug("Path obstructed! Repathing...")
+                ClientMessenger.sendActionBar("Path obstructed! Repathing...", ChatFormatting.RED)
                 repath()
                 return
             }
+        }
+
+        if (path.isPartial && !calculating && path.remaining <= PARTIAL_REPATH_THRESHOLD) {
+            ClientMessenger.sendActionBar("Extending path...", ChatFormatting.AQUA)
+            repath()
         }
 
         var currNode = path.current() ?: run { finishCheck(); return }
@@ -130,7 +141,7 @@ object PathExecutor {
             }
 
             if (playerPos.y < minSegmentY - 1.5) {
-                ClientMessenger.debug("Vertical Deviation.")
+                ClientMessenger.sendActionBar("Vertical Deviation detected", ChatFormatting.GOLD)
                 repath()
                 return true
             }
@@ -143,7 +154,7 @@ object PathExecutor {
         }
 
         if (deviationSq > threshold * threshold) {
-            ClientMessenger.debug("Horizontal Deviation: $deviationSq")
+            ClientMessenger.sendActionBar("Off path ($deviationSq), recalculating...", ChatFormatting.GOLD)
             repath()
             return true
         }
@@ -180,7 +191,7 @@ object PathExecutor {
         }
 
         if (stuckTicks > STUCK_THRESHOLD_TICKS) {
-            ClientMessenger.debug("Stuck detected. Repathing...")
+            ClientMessenger.sendActionBar("Stuck detected. Repathing...", ChatFormatting.RED)
             stuckTicks = 0
             repath()
             return true
@@ -225,7 +236,9 @@ object PathExecutor {
         calculating = false
         val success = result.path != null && !result.path.isEmpty
 
-        PathProfiler.record(result, success)
+        if (!result.isPartial) {
+            PathProfiler.record(result, success)
+        }
 
         if (!success) {
             ClientMessenger.error("No path found.")
@@ -233,10 +246,16 @@ object PathExecutor {
             return
         }
 
-        path = result.path
+        path = result.path!!
         stuckTicks = 0
         lastPos = player.position()
         InputOverride.activate()
+
+        if (result.isPartial) {
+            ClientMessenger.sendActionBar("Partial path found (${path.size} nodes)...", ChatFormatting.AQUA)
+        } else {
+            ClientMessenger.sendActionBar("Path found! (${path.size} nodes)", ChatFormatting.GREEN)
+        }
 
         val firstNode = path.current() ?: return
 
@@ -253,7 +272,7 @@ object PathExecutor {
     private fun finishCheck() {
         val goal = currentGoal ?: return
         if (goal.hasReached(player.blockPosition())) {
-            ClientMessenger.debug("Goal reached!")
+            ClientMessenger.feedback("Goal reached!")
             stop()
         } else {
             repath()

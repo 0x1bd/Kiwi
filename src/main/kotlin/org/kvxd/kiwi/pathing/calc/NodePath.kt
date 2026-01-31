@@ -2,7 +2,10 @@ package org.kvxd.kiwi.pathing.calc
 
 import net.minecraft.core.BlockPos
 
-class NodePath(private val nodes: List<Node>) {
+class NodePath(
+    private val nodes: List<Node>,
+    val isPartial: Boolean = false
+) {
 
     var index: Int = 0
         private set
@@ -10,6 +13,7 @@ class NodePath(private val nodes: List<Node>) {
     val size: Int get() = nodes.size
     val isEmpty: Boolean get() = nodes.isEmpty()
     val isFinished: Boolean get() = index >= nodes.size
+    val remaining: Int get() = nodes.size - index
 
     fun current(): Node? = nodes.getOrNull(index)
 
