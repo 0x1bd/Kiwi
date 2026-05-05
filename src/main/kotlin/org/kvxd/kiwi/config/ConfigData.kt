@@ -109,12 +109,6 @@ object ConfigData {
         30
     )
 
-    var collectPickupRadius by double(
-        "collectPickupRadius",
-        "Radius (blocks) the bot must get to the item to pick it up",
-        0.35
-    )
-
     var collectMaxAttempts by int(
         "collectMaxAttempts",
         "How many times to retry collecting an item before failing the action",

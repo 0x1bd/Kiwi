@@ -11,6 +11,7 @@ import org.kvxd.kiwi.agent.runtime.AgentFailure
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.math.RotationUtils
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 suspend fun AgentRuntime.walkTo(pos: BlockPos, reach: Double = 1.5) {
     phase = AgentPhase.MOVING
@@ -24,5 +25,5 @@ suspend fun AgentRuntime.walkTo(pos: BlockPos, reach: Double = 1.5) {
 suspend fun AgentRuntime.lookAtBlock(pos: BlockPos) {
     val rots = RotationUtils.getLookRotations(Vec3.atCenterOf(pos))
     RotationManager.setTarget(rots.x, rots.y)
-    delay(50)
+    delay(50.milliseconds)
 }
