@@ -1,11 +1,13 @@
 package org.kvxd.kiwi.agent.ui
 
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import org.kvxd.kiwi.agent.Agent
+import org.kvxd.kiwi.agent.runtime.AgentRuntime
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.math.RaycastHelper
@@ -25,12 +27,14 @@ object AgentOverlayRenderer {
     private val lineHeight: Int get() = font.lineHeight + 2
 
     fun init() {
-        HudRenderCallback.EVENT.register(HudRenderCallback { graphics, _ ->
-            if (!ConfigData.renderAgentOverlay) return@HudRenderCallback
+        HudElementRegistry.addLast(
+            ResourceLocation.fromNamespaceAndPath("kiwi", "agent_overlay")
+        ) { context, tickCounter ->
+            if (!ConfigData.renderAgentOverlay) return@addLast
 
-            val runtime = Agent.runtime ?: return@HudRenderCallback
+            val runtime = Agent.runtime ?: return@addLast
             val lines = buildLines(runtime)
-            if (lines.isEmpty()) return@HudRenderCallback
+            if (lines.isEmpty()) return@addLast
 
             val screenW = scaledRes.guiScaledWidth
             val screenH = scaledRes.guiScaledHeight
@@ -41,25 +45,25 @@ object AgentOverlayRenderer {
             val panelH = (lines.size * lineHeight + PANEL_PADDING * 2).coerceAtMost(maxPanelH)
             val panelX = screenW - panelW - PANEL_X
 
-            drawPanel(graphics, panelX, PANEL_Y, panelW, panelH)
+            drawPanel(context, panelX, PANEL_Y, panelW, panelH)
             var y = PANEL_Y + PANEL_PADDING
             for (line in lines) {
                 if (y + lineHeight > PANEL_Y + panelH) break
-                graphics.drawString(font, line.value, panelX + PANEL_PADDING + line.indent, y, line.color.toInt())
+                context.drawString(font, line.value, panelX + PANEL_PADDING + line.indent, y, line.color.toInt())
                 y += lineHeight
             }
-        })
+        }
     }
 
-    private fun drawPanel(graphics: GuiGraphics, x: Int, y: Int, w: Int, h: Int) {
-        graphics.fill(x, y, x + w, y + h, 0xCC000000.toInt())
-        graphics.fill(x, y, x + w, y + 1, 0xFF3A852A.toInt())
-        graphics.fill(x, y + h - 1, x + w, y + h, 0xFF3A852A.toInt())
+    private fun drawPanel(context: GuiGraphics, x: Int, y: Int, w: Int, h: Int) {
+        context.fill(x, y, x + w, y + h, 0xCC000000.toInt())
+        context.fill(x, y, x + w, y + 1, 0xFF3A852A.toInt())
+        context.fill(x, y + h - 1, x + w, y + h, 0xFF3A852A.toInt())
     }
 
     private data class OverlayLine(val value: String, val color: Long, val indent: Int)
 
-    private fun buildLines(runtime: org.kvxd.kiwi.agent.runtime.AgentRuntime): List<OverlayLine> {
+    private fun buildLines(runtime: AgentRuntime): List<OverlayLine> {
         val lines = mutableListOf<OverlayLine>()
 
         lines.add(OverlayLine("[active] ${runtime.request.label}", 0xFFAAFFAA, 0))
