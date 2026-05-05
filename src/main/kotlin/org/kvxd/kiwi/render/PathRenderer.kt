@@ -1,6 +1,6 @@
 package org.kvxd.kiwi.render
 
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.config.ConfigData
@@ -27,7 +27,7 @@ object PathRenderer {
     private const val NODE_SIZE = 0.15
 
     fun init() {
-        WorldRenderEvents.END_MAIN.register { context ->
+        LevelRenderEvents.END_MAIN.register { context ->
             Renderer3D.render(context) {
                 val target = DebugState.agentMineTarget
                 if (target != null && ConfigData.renderPath) {

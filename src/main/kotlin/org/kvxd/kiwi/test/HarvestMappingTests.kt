@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.test
 
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import org.kvxd.kiwi.agent.RecipeLookup
 import org.kvxd.kiwi.harvest.HarvestDatabase
 import org.kvxd.kiwi.harvest.HarvestToolTier
@@ -104,7 +104,7 @@ class HarvestMappingTests : TestRunner.TestSuite("Harvest Mapping") {
 
         test("stone_in_registry") {
             val block = BuiltInRegistries.BLOCK.getOptional(
-                ResourceLocation.parse("minecraft:stone")
+                Identifier.parse("minecraft:stone")
             ).orElse(null)
             check(block != null) { "minecraft:stone not in BLOCK registry" }
         }

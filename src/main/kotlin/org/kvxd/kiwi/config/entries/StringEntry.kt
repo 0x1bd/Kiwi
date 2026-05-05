@@ -4,8 +4,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.*
 import org.kvxd.kiwi.config.ConfigEntry
 import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.config.ConfigRegistry

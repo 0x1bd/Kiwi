@@ -3,7 +3,7 @@ package org.kvxd.kiwi.command.impl
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.*
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
@@ -17,9 +17,9 @@ import org.kvxd.kiwi.util.feedback
 object CraftCommand : AbstractCommand("craft") {
 
     override fun build(): LiteralArgumentBuilder<FabricClientCommandSource> {
-        return ClientCommandManager.literal(name)
+        return literal(name)
             .then(
-                ClientCommandManager.argument("item", StringArgumentType.word())
+                argument("item", StringArgumentType.word())
                     .suggests { context, builder ->
                         val prefix = context.input.substringAfterLast(' ').lowercase()
 
@@ -32,7 +32,7 @@ object CraftCommand : AbstractCommand("craft") {
                         builder.buildFuture()
                     }
                     .then(
-                        ClientCommandManager.argument("count", IntegerArgumentType.integer(1))
+                        argument("count", IntegerArgumentType.integer(1))
                             .executes { ctx ->
                                 val item = StringArgumentType.getString(ctx, "item")
                                 val count = IntegerArgumentType.getInteger(ctx, "count")
@@ -49,7 +49,7 @@ object CraftCommand : AbstractCommand("craft") {
                     }
             )
             .then(
-                ClientCommandManager.literal("status")
+                literal("status")
                     .executes { ctx ->
                         val source = ctx.source
                         if (!Agent.active) {

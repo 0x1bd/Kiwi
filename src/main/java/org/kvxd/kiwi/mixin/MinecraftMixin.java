@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.jspecify.annotations.Nullable;
 import org.kvxd.kiwi.agent.control.RotationManager;
 import org.kvxd.kiwi.util.math.RaycastHelper;
 import org.spongepowered.asm.mixin.Final;
@@ -14,27 +15,34 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GameRenderer.class)
-public class GameRendererMixin {
+@Mixin(Minecraft.class)
+public abstract class MinecraftMixin {
 
     @Shadow
-    @Final
-    private Minecraft minecraft;
+    public abstract @Nullable Entity getCameraEntity();
+
+    @Shadow
+    @Nullable
+    public HitResult hitResult;
+
+    @Shadow
+    @Nullable
+    public Entity crosshairPickEntity;
 
     @Inject(method = "pick(F)V", at = @At("HEAD"), cancellable = true)
     private void kiwi$pick(float f, CallbackInfo ci) {
         if (RotationManager.INSTANCE.getHasTarget()) {
-            Entity cameraEntity = this.minecraft.getCameraEntity();
+            Entity cameraEntity = getCameraEntity();
             if (cameraEntity == null) return;
 
             HitResult customHit = RaycastHelper.INSTANCE.raycast(f);
 
-            this.minecraft.hitResult = customHit;
+            hitResult = customHit;
 
             if (customHit instanceof EntityHitResult entityHit) {
-                this.minecraft.crosshairPickEntity = entityHit.getEntity();
+                crosshairPickEntity = entityHit.getEntity();
             } else {
-                this.minecraft.crosshairPickEntity = null;
+                crosshairPickEntity = null;
             }
 
             ci.cancel();

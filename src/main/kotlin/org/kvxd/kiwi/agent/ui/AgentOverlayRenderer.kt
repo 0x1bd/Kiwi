@@ -2,8 +2,8 @@ package org.kvxd.kiwi.agent.ui
 
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.resources.Identifier
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import org.kvxd.kiwi.agent.Agent
@@ -28,8 +28,8 @@ object AgentOverlayRenderer {
 
     fun init() {
         HudElementRegistry.addLast(
-            ResourceLocation.fromNamespaceAndPath("kiwi", "agent_overlay")
-        ) { context, tickCounter ->
+            Identifier.fromNamespaceAndPath("kiwi", "agent_overlay")
+        ) { context, _ ->
             if (!ConfigData.renderAgentOverlay) return@addLast
 
             val runtime = Agent.runtime ?: return@addLast
@@ -49,16 +49,16 @@ object AgentOverlayRenderer {
             var y = PANEL_Y + PANEL_PADDING
             for (line in lines) {
                 if (y + lineHeight > PANEL_Y + panelH) break
-                context.drawString(font, line.value, panelX + PANEL_PADDING + line.indent, y, line.color.toInt())
+                context.text(font, line.value, panelX + PANEL_PADDING + line.indent, y, line.color.toInt())
                 y += lineHeight
             }
         }
     }
 
-    private fun drawPanel(context: GuiGraphics, x: Int, y: Int, w: Int, h: Int) {
-        context.fill(x, y, x + w, y + h, 0xCC000000.toInt())
-        context.fill(x, y, x + w, y + 1, 0xFF3A852A.toInt())
-        context.fill(x, y + h - 1, x + w, y + h, 0xFF3A852A.toInt())
+    private fun drawPanel(extractor: GuiGraphicsExtractor, x: Int, y: Int, w: Int, h: Int) {
+        extractor.fill(x, y, x + w, y + h, 0xCC000000.toInt())
+        extractor.fill(x, y, x + w, y + 1, 0xFF3A852A.toInt())
+        extractor.fill(x, y + h - 1, x + w, y + h, 0xFF3A852A.toInt())
     }
 
     private data class OverlayLine(val value: String, val color: Long, val indent: Int)

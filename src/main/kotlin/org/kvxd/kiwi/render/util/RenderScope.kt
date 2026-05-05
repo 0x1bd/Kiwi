@@ -3,6 +3,7 @@ package org.kvxd.kiwi.render.util
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix3f
@@ -51,7 +52,7 @@ class RenderScope(
         color: Color,
         lineWidth: Float = 1.0f
     ) {
-        val layer = if (isDepthTestEnabled) ModRenderLayers.LINES(lineWidth) else ModRenderLayers.LINES_NO_DEPTH(lineWidth)
+        val layer = if (isDepthTestEnabled) RenderTypes.lines() else RenderTypes.linesTranslucent()
         val buffer = source.getBuffer(layer)
 
         val relStart = relative(start)
@@ -77,10 +78,12 @@ class RenderScope(
         buffer.pos(pMat, relStart.x.toFloat(), relStart.y.toFloat(), relStart.z.toFloat())
             .setColor(r, g, b, a)
             .normal(nMat, nx, ny, nz)
+            .setLineWidth(lineWidth)
 
         buffer.pos(pMat, relEnd.x.toFloat(), relEnd.y.toFloat(), relEnd.z.toFloat())
             .setColor(r, g, b, a)
             .normal(nMat, nx, ny, nz)
+            .setLineWidth(lineWidth)
     }
 
     fun drawAABB(

@@ -2,8 +2,7 @@ package org.kvxd.kiwi.command.impl
 
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.*
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import org.kvxd.kiwi.agent.control.PathNavigator
 import org.kvxd.kiwi.command.AbstractCommand
@@ -19,7 +18,7 @@ object GoalCommand : AbstractCommand("goal") {
         return literal(name)
             .then(
                 literal("xyz").then(
-                    ClientCommandManager.argument("pos", ClientPositionArgument.blockPos())
+                    argument("pos", ClientPositionArgument.blockPos())
                         .executes { ctx ->
                             val pos = ClientPositionArgument.get(ctx, "pos")
 
@@ -28,7 +27,7 @@ object GoalCommand : AbstractCommand("goal") {
                         })
             ).then(
                 literal("gotoNear").then(
-                    ClientCommandManager.argument("pos", ClientPositionArgument.blockPos())
+                    argument("pos", ClientPositionArgument.blockPos())
                         .executes { ctx ->
                             val pos = ClientPositionArgument.get(ctx, "pos")
 
@@ -36,7 +35,7 @@ object GoalCommand : AbstractCommand("goal") {
                             1
                         }
                         .then(
-                            ClientCommandManager.argument("range", IntegerArgumentType.integer())
+                            argument("range", IntegerArgumentType.integer())
                                 .executes { ctx ->
                                     val pos = ClientPositionArgument.get(ctx, "pos")
                                     val range = IntegerArgumentType.getInteger(ctx, "range")
@@ -48,7 +47,7 @@ object GoalCommand : AbstractCommand("goal") {
             )
             .then(
                 literal("xz").then(
-                    ClientCommandManager.argument("pos", XZPositionArgument.xz())
+                    argument("pos", XZPositionArgument.xz())
                         .executes { ctx ->
                             val pos = XZPositionArgument.get(ctx, "pos")
 

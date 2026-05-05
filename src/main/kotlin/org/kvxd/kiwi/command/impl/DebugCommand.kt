@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.command.impl
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
 import org.kvxd.kiwi.agent.Agent
 import org.kvxd.kiwi.agent.ui.DebugState
@@ -56,7 +56,7 @@ object DebugCommand : AbstractCommand("debug") {
             appendLine("    \"pos\": [${playerPos.x}, ${playerPos.y}, ${playerPos.z}],")
             appendLine("    \"health\": ${player.health},")
             appendLine("    \"food\": ${player.foodData.foodLevel},")
-            appendLine("    \"dimension\": \"${player.level().dimension().location()}\"")
+            appendLine("    \"dimension\": \"${player.level().dimension().identifier()}\"")
             appendLine("  },")
             appendLine("  \"agent\": {")
             appendLine("    \"active\": ${Agent.active},")

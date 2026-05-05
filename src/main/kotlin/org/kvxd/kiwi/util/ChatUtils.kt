@@ -52,12 +52,7 @@ object ClientMessenger {
             .append(PREFIX)
             .append(builder.root)
 
-        player.displayClientMessage(finalMessage, false)
-    }
-
-    fun sendActionBar(text: String, color: ChatFormatting = ChatFormatting.GREEN) {
-        val msg = Component.literal(text).withStyle(color)
-        player.displayClientMessage(msg, true)
+        player.sendSystemMessage(finalMessage)
     }
 
     fun feedback(msg: String) {

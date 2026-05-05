@@ -1,6 +1,7 @@
 package org.kvxd.kiwi.agent
 
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.Identifier
 import org.kvxd.kiwi.harvest.BlockHarvestInfo
 import org.kvxd.kiwi.harvest.HarvestDatabase
 import org.kvxd.kiwi.recipe.ParsedRecipe
@@ -31,6 +32,7 @@ data class RecipeIngredient(
                     if (resolved.isNotEmpty()) resolved.map { it.removePrefix("minecraft:") }
                     else listOf(ingredient.name.removePrefix("minecraft:"))
                 }
+
                 org.kvxd.kiwi.recipe.IngredientKind.ITEM -> listOf(ingredient.name.removePrefix("minecraft:"))
             }
             return RecipeIngredient(
@@ -269,12 +271,12 @@ object RecipeLookup {
 
     private fun findItem(id: String): net.minecraft.world.item.Item? {
         val fullId = if (id.contains(":")) id else "minecraft:$id"
-        return BuiltInRegistries.ITEM.getOptional(net.minecraft.resources.ResourceLocation.parse(fullId)).orElse(null)
+        return BuiltInRegistries.ITEM.getOptional(Identifier.parse(fullId)).orElse(null)
     }
 
     private fun findBlock(id: String): net.minecraft.world.level.block.Block? {
         val fullId = if (id.contains(":")) id else "minecraft:$id"
-        return BuiltInRegistries.BLOCK.getOptional(net.minecraft.resources.ResourceLocation.parse(fullId)).orElse(null)
+        return BuiltInRegistries.BLOCK.getOptional(Identifier.parse(fullId)).orElse(null)
     }
 
     private fun mergeIngredients(rawIngredients: List<RecipeIngredient>): List<RecipeIngredient> {

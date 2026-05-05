@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.command
 
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.*
 import org.kvxd.kiwi.command.impl.ConfigCommand
 import org.kvxd.kiwi.command.impl.CraftCommand
 import org.kvxd.kiwi.command.impl.DebugCommand
@@ -22,7 +22,7 @@ object CommandRegistry {
 
     fun init() {
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
-            val root = ClientCommandManager.literal("kiwi")
+            val root = literal("kiwi")
 
             for (cmd in commands) {
                 root.then(cmd.build())

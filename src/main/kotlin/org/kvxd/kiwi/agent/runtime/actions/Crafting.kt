@@ -7,7 +7,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.InteractionHand
-import net.minecraft.world.inventory.ClickType
 import net.minecraft.world.inventory.CraftingMenu
 import net.minecraft.world.inventory.FurnaceMenu
 import net.minecraft.world.inventory.InventoryMenu
@@ -33,6 +32,7 @@ import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.InventoryUtil
 import org.kvxd.kiwi.util.math.RotationUtils
 import kotlinx.coroutines.delay
+import net.minecraft.world.inventory.ContainerInput
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -72,13 +72,13 @@ suspend fun AgentRuntime.smeltItem(recipe: Recipe) {
     val ingredientIds = recipe.ingredients.firstOrNull()?.itemIds ?: throw AgentFailure("No ingredient for smelting")
     val invSlot = findInvSlot(menu, ingredientIds, 3..38)
     if (invSlot == -1) throw AgentFailure("Missing ingredient for smelting")
-    gameMode.handleInventoryMouseClick(menu.containerId, invSlot, 0, ClickType.PICKUP, player)
-    gameMode.handleInventoryMouseClick(menu.containerId, 0, 1, ClickType.PICKUP, player)
+    gameMode.handleContainerInput(menu.containerId, invSlot, 0, ContainerInput.PICKUP, player)
+    gameMode.handleContainerInput(menu.containerId, 0, 1, ContainerInput.PICKUP, player)
 
     val fuelSlot = findInvSlot(menu, fuelIds, 3..38)
     if (fuelSlot == -1) throw AgentFailure("No fuel for smelting")
-    gameMode.handleInventoryMouseClick(menu.containerId, fuelSlot, 0, ClickType.PICKUP, player)
-    gameMode.handleInventoryMouseClick(menu.containerId, 1, 1, ClickType.PICKUP, player)
+    gameMode.handleContainerInput(menu.containerId, fuelSlot, 0, ContainerInput.PICKUP, player)
+    gameMode.handleContainerInput(menu.containerId, 1, 1, ContainerInput.PICKUP, player)
 
     var ticks = 0
     while (!menu.getSlot(2).hasItem() && ticks < 200) {
@@ -87,7 +87,7 @@ suspend fun AgentRuntime.smeltItem(recipe: Recipe) {
     }
     if (ticks >= 200) throw AgentFailure("Smelting timed out")
 
-    gameMode.handleInventoryMouseClick(menu.containerId, 2, 0, ClickType.QUICK_MOVE, player)
+    gameMode.handleContainerInput(menu.containerId, 2, 0, ContainerInput.QUICK_MOVE, player)
     delay(250)
     closeScreen()
 }
@@ -308,20 +308,20 @@ private suspend fun AgentRuntime.placeCraftingIngredients(recipe: Recipe) {
         val invSlot = findInvSlot(menu, ingredient.itemIds, invRange(recipe.source))
         if (invSlot == -1) throw AgentFailure("Missing ${ingredient.displayName} for crafting")
 
-        gameMode.handleInventoryMouseClick(menu.containerId, invSlot, 0, ClickType.PICKUP, player)
+        gameMode.handleContainerInput(menu.containerId, invSlot, 0, ContainerInput.PICKUP, player)
         delay(50)
 
-        gameMode.handleInventoryMouseClick(menu.containerId, gridSlot, 1, ClickType.PICKUP, player)
+        gameMode.handleContainerInput(menu.containerId, gridSlot, 1, ContainerInput.PICKUP, player)
         delay(50)
 
-        gameMode.handleInventoryMouseClick(menu.containerId, invSlot, 0, ClickType.PICKUP, player)
+        gameMode.handleContainerInput(menu.containerId, invSlot, 0, ContainerInput.PICKUP, player)
         delay(50)
     }
 
     if (!menu.carried.isEmpty) {
         val emptySlot = findEmptySlot(menu, invRange(recipe.source))
         if (emptySlot != -1) {
-            gameMode.handleInventoryMouseClick(menu.containerId, emptySlot, 0, ClickType.PICKUP, player)
+            gameMode.handleContainerInput(menu.containerId, emptySlot, 0, ContainerInput.PICKUP, player)
             delay(50)
         }
     }
@@ -361,7 +361,7 @@ private suspend fun AgentRuntime.waitForResult() {
 
 private suspend fun AgentRuntime.quickMoveResult() {
     val menu = player.containerMenu
-    client.gameMode?.handleInventoryMouseClick(menu.containerId, 0, 0, ClickType.QUICK_MOVE, player)
+    client.gameMode?.handleContainerInput(menu.containerId, 0, 0, ContainerInput.QUICK_MOVE, player)
     delay(100)
 }
 
