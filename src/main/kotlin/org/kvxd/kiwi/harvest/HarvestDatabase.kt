@@ -3,11 +3,7 @@ package org.kvxd.kiwi.harvest
 import com.google.gson.JsonParser
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.tags.BlockTags
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
-import org.kvxd.kiwi.level
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -82,34 +78,19 @@ object HarvestDatabase {
         logger.info("HarvestDatabase loaded: $count blocks, ${byDrop.size} drop types, $errors errors")
     }
 
-    private fun detectToolType(block: net.minecraft.world.level.block.Block): HarvestToolType {
+    private fun detectToolType(block: Block): HarvestToolType {
         val blockState = block.defaultBlockState()
-        return try {
-            when {
-                blockState.`is`(BlockTags.MINEABLE_WITH_PICKAXE) -> HarvestToolType.PICKAXE
-                blockState.`is`(BlockTags.MINEABLE_WITH_AXE) -> HarvestToolType.AXE
-                blockState.`is`(BlockTags.MINEABLE_WITH_SHOVEL) -> HarvestToolType.SHOVEL
-                blockState.`is`(BlockTags.MINEABLE_WITH_HOE) -> HarvestToolType.HOE
-                blockState.`is`(BlockTags.SWORD_EFFICIENT) -> HarvestToolType.SWORD
-                else -> detectToolTypeFallback(block)
-            }
-        } catch (_: Exception) {
-            detectToolTypeFallback(block)
-        }
-    }
-
-    private fun detectToolTypeFallback(block: net.minecraft.world.level.block.Block): HarvestToolType {
-        val name = block.javaClass.name.lowercase()
         return when {
-            "ore" in name || "stone" in name || "rock" in name || "obsidian" in name -> HarvestToolType.PICKAXE
-            "log" in name || "wood" in name || "plank" in name || "stem" in name -> HarvestToolType.AXE
-            "dirt" in name || "sand" in name || "gravel" in name || "clay" in name || "snow" in name -> HarvestToolType.SHOVEL
-            "leaves" in name || "wool" in name || "web" in name -> HarvestToolType.SHEARS
-            else -> HarvestToolType.ANY
+            blockState.`is`(BlockTags.MINEABLE_WITH_PICKAXE) -> HarvestToolType.PICKAXE
+            blockState.`is`(BlockTags.MINEABLE_WITH_AXE) -> HarvestToolType.AXE
+            blockState.`is`(BlockTags.MINEABLE_WITH_SHOVEL) -> HarvestToolType.SHOVEL
+            blockState.`is`(BlockTags.MINEABLE_WITH_HOE) -> HarvestToolType.HOE
+            blockState.`is`(BlockTags.SWORD_EFFICIENT) -> HarvestToolType.SWORD
+            else -> throw IllegalStateException("Could not determine tool type for ${block.name}")
         }
     }
 
-    private fun detectToolTier(block: net.minecraft.world.level.block.Block): HarvestToolTier {
+    private fun detectToolTier(block: Block): HarvestToolTier {
         val blockState = block.defaultBlockState()
         return try {
             when {
@@ -123,7 +104,7 @@ object HarvestDatabase {
         }
     }
 
-    private fun detectToolTierFallback(block: net.minecraft.world.level.block.Block): HarvestToolTier {
+    private fun detectToolTierFallback(block: Block): HarvestToolTier {
         val destroyTime = block.defaultDestroyTime()
         return when {
             destroyTime >= 50.0f -> HarvestToolTier.NETHERITE
@@ -185,6 +166,7 @@ object HarvestDatabase {
                         val lastChild = children[children.size() - 1].asJsonObject ?: continue
                         lastChild.get("name")?.asString ?: continue
                     }
+
                     else -> continue
                 }
 
@@ -192,7 +174,10 @@ object HarvestDatabase {
                 drops["minecraft:$blockName"] = name.removePrefix("minecraft:")
             } catch (_: Exception) {
             } finally {
-                try { stream.close() } catch (_: Exception) {}
+                try {
+                    stream.close()
+                } catch (_: Exception) {
+                }
             }
         }
 
@@ -208,7 +193,11 @@ object HarvestDatabase {
         for (url in urls) {
             when (url.protocol) {
                 "file" -> {
-                    val dir = try { java.nio.file.Paths.get(url.toURI()) } catch (_: Exception) { continue }
+                    val dir = try {
+                        java.nio.file.Paths.get(url.toURI())
+                    } catch (_: Exception) {
+                        continue
+                    }
                     if (java.nio.file.Files.isDirectory(dir)) {
                         java.nio.file.Files.list(dir).use { stream ->
                             stream.filter { it.fileName.toString().endsWith(extension) }
@@ -219,6 +208,7 @@ object HarvestDatabase {
                         }
                     }
                 }
+
                 "jar" -> {
                     try {
                         val connection = url.openConnection() as? java.net.JarURLConnection ?: continue

@@ -37,6 +37,12 @@ dependencies {
     implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
 
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_api_version")}")
+
+    testImplementation("net.fabricmc:fabric-loader-junit:${project.property("loader_version")}")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val extractVanillaData = tasks.register("extractVanillaData") {
