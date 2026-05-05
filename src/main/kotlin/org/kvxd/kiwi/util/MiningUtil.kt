@@ -36,6 +36,11 @@ object MiningUtil {
 
             speed += efficiency * efficiency + 1
         }
+
+        if (speed > 1.0f && state.requiresCorrectToolForDrops() && !stack.isCorrectToolForDrops(state)) {
+            return 0.01f
+        }
+
         return speed
     }
 

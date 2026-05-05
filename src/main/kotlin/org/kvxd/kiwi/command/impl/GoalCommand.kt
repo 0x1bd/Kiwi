@@ -5,13 +5,13 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
+import org.kvxd.kiwi.agent.control.PathNavigator
 import org.kvxd.kiwi.command.AbstractCommand
 import org.kvxd.kiwi.command.argument.ClientPositionArgument
 import org.kvxd.kiwi.command.argument.XZPositionArgument
-import org.kvxd.kiwi.control.PathExecutor
-import org.kvxd.kiwi.pathing.goal.goals.GoalXYZ
-import org.kvxd.kiwi.pathing.goal.goals.GoalNear
-import org.kvxd.kiwi.pathing.goal.goals.GoalXZ
+import org.kvxd.kiwi.agent.pathing.goal.goals.GoalXYZ
+import org.kvxd.kiwi.agent.pathing.goal.goals.GoalNear
+import org.kvxd.kiwi.agent.pathing.goal.goals.GoalXZ
 
 object GoalCommand : AbstractCommand("goal") {
 
@@ -23,7 +23,7 @@ object GoalCommand : AbstractCommand("goal") {
                         .executes { ctx ->
                             val pos = ClientPositionArgument.get(ctx, "pos")
 
-                            PathExecutor.setGoal(GoalXYZ(pos))
+                            PathNavigator.setGoal(GoalXYZ(pos))
                             1
                         })
             ).then(
@@ -32,7 +32,7 @@ object GoalCommand : AbstractCommand("goal") {
                         .executes { ctx ->
                             val pos = ClientPositionArgument.get(ctx, "pos")
 
-                            PathExecutor.setGoal(GoalNear(pos, 3.0))
+                            PathNavigator.setGoal(GoalNear(pos, 3.0))
                             1
                         }
                         .then(
@@ -41,7 +41,7 @@ object GoalCommand : AbstractCommand("goal") {
                                     val pos = ClientPositionArgument.get(ctx, "pos")
                                     val range = IntegerArgumentType.getInteger(ctx, "range")
 
-                                    PathExecutor.setGoal(GoalNear(pos, range.toDouble()))
+                                    PathNavigator.setGoal(GoalNear(pos, range.toDouble()))
                                     1
                                 })
                 )
@@ -52,7 +52,7 @@ object GoalCommand : AbstractCommand("goal") {
                         .executes { ctx ->
                             val pos = XZPositionArgument.get(ctx, "pos")
 
-                            PathExecutor.setGoal(GoalXZ(pos.x, pos.z))
+                            PathNavigator.setGoal(GoalXZ(pos.x, pos.z))
                             1
                         }
                 ))

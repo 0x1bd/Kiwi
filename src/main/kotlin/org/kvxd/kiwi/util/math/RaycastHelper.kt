@@ -3,7 +3,7 @@ package org.kvxd.kiwi.util.math
 import net.minecraft.world.entity.projectile.ProjectileUtil
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.HitResult
-import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 

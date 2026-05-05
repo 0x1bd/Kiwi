@@ -8,7 +8,9 @@
   "client": [
     "GameRendererMixin",
     "MixinAvatarRenderer",
-    "MixinLocalPlayer"
+    "MixinLocalPlayer",
+    "ShapedRecipeAccessor",
+    "ShapelessRecipeAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

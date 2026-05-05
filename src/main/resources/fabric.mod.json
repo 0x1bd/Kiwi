@@ -3,7 +3,7 @@
   "id": "kiwi",
   "version": "${version}",
   "name": "Kiwi",
-  "description": "Lightweight client-side pathfinding mod for minecraft",
+  "description": "Client-side autonomous agent with task planning and pathfinding for Minecraft",
   "authors": [],
   "contact": {},
   "license": "GPL-3.0",
@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "org.kvxd.kiwi.Kiwi"
+    ],
+    "fabric-datagen": [
+      "org.kvxd.kiwi.datagen.KiwiDataGenerator"
     ]
   },
   "mixins": [

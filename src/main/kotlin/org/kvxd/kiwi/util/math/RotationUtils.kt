@@ -6,7 +6,7 @@ import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.config.ConfigData
-import org.kvxd.kiwi.control.RotationManager
+import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.player
 import kotlin.math.PI
 import kotlin.math.abs
@@ -106,5 +106,28 @@ object RotationUtils {
             absX >= absZ -> if (dx > 0) Direction.EAST else Direction.WEST
             else -> if (dz > 0) Direction.SOUTH else Direction.NORTH
         }
+    }
+
+    fun getClosestPointOnBlock(blockPos: BlockPos, eyePos: Vec3): Vec3 {
+        val minX = blockPos.x.toDouble()
+        val minY = blockPos.y.toDouble()
+        val minZ = blockPos.z.toDouble()
+        val maxX = minX + 1.0
+        val maxY = minY + 1.0
+        val maxZ = minZ + 1.0
+
+        val cx = eyePos.x.coerceIn(minX, maxX)
+        val cy = eyePos.y.coerceIn(minY, maxY)
+        val cz = eyePos.z.coerceIn(minZ, maxZ)
+
+        val centerX = minX + 0.5
+        val centerY = minY + 0.5
+        val centerZ = minZ + 0.5
+
+        val targetX = cx + (centerX - cx) * 0.1
+        val targetY = cy + (centerY - cy) * 0.1
+        val targetZ = cz + (centerZ - cz) * 0.1
+
+        return Vec3(targetX, targetY, targetZ)
     }
 }

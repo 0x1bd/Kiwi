@@ -6,7 +6,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.kvxd.kiwi.config.ConfigData;
-import org.kvxd.kiwi.control.RotationManager;
+import org.kvxd.kiwi.agent.control.RotationManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;

@@ -3,9 +3,11 @@ package org.kvxd.kiwi.command
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import org.kvxd.kiwi.command.impl.ConfigCommand
+import org.kvxd.kiwi.command.impl.CraftCommand
 import org.kvxd.kiwi.command.impl.DebugCommand
 import org.kvxd.kiwi.command.impl.GoalCommand
 import org.kvxd.kiwi.command.impl.StopCommand
+import org.kvxd.kiwi.command.impl.TestCommand
 
 object CommandRegistry {
 
@@ -13,7 +15,9 @@ object CommandRegistry {
         GoalCommand,
         DebugCommand,
         StopCommand,
-        ConfigCommand
+        ConfigCommand,
+        CraftCommand,
+        TestCommand
     )
 
     fun init() {
