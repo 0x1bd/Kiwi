@@ -99,7 +99,7 @@ object AgentOverlayRenderer {
             val raycast = RaycastHelper.raycast(1.0f)
             val rayText = when (raycast) {
                 is BlockHitResult -> "Block ${raycast.blockPos.x},${raycast.blockPos.y},${raycast.blockPos.z}"
-                is EntityHitResult -> "Entity ${raycast.entity.displayName?.string ?: raycast.entity.name.string}"
+                is EntityHitResult -> "Entity ${raycast.entity.displayName.string}"
                 else -> "Miss"
             }
             lines.add(OverlayLine("Raycast: $rayText", 0xFF66CCFFL, 0))

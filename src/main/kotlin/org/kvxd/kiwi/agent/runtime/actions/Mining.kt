@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
-import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.agent.control.MovementController
 import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.agent.control.input.InputOverride
@@ -21,6 +20,7 @@ import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
 import org.kvxd.kiwi.util.math.RotationUtils
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 data class BlockInfo(val id: String, val alternatives: List<String> = emptyList(), val dropId: String = id)
 
@@ -45,7 +45,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
                 val cleared = clearObstruction(pos, blockInfo)
                 goalPos = moveToMiningStand(pos, fallback = goalPos)
                 totalAttempts++
-                if (!cleared) delay(50)
+                if (!cleared) delay(50.milliseconds)
                 continue
             }
 
@@ -57,7 +57,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
 
             var aimTicks = 0
             while (!RotationUtils.isLookingAt(targetPos, 0.5) && aimTicks < 20) {
-                delay(50)
+                delay(50.milliseconds)
                 aimTicks++
             }
 
@@ -65,14 +65,14 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
             if (obstruction != null) {
                 mineObstruction(obstruction)
                 totalAttempts++
-                delay(50)
+                delay(50.milliseconds)
                 continue
             }
 
             if (!RotationUtils.isLookingAt(targetPos, 0.5)) {
                 goalPos = moveToMiningStand(pos, fallback = goalPos)
                 totalAttempts++
-                delay(50)
+                delay(50.milliseconds)
                 continue
             }
 
@@ -83,7 +83,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
                     InputOverride.update { attack = false }
                     break
                 }
-                delay(50)
+                delay(50.milliseconds)
                 innerTicks++
             }
             InputOverride.update { attack = false }
@@ -108,7 +108,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
         var pickupWait = 0
         val preCount = inventoryCount(blockInfo.dropId)
         while (inventoryCount(blockInfo.dropId) <= preCount && pickupWait < 15) {
-            delay(50)
+            delay(50.milliseconds)
             pickupWait++
         }
     }
@@ -124,7 +124,7 @@ private suspend fun AgentRuntime.moveToMiningStand(target: BlockPos, fallback: B
 
     var alignTicks = 0
     while (!MovementController.alignToBlockCenter(stand) && alignTicks < 20) {
-        delay(50)
+        delay(50.milliseconds)
         alignTicks++
     }
     MovementController.stop()

@@ -7,7 +7,6 @@ import org.kvxd.kiwi.command.impl.CraftCommand
 import org.kvxd.kiwi.command.impl.DebugCommand
 import org.kvxd.kiwi.command.impl.GoalCommand
 import org.kvxd.kiwi.command.impl.StopCommand
-import org.kvxd.kiwi.command.impl.TestCommand
 
 object CommandRegistry {
 
@@ -16,8 +15,7 @@ object CommandRegistry {
         DebugCommand,
         StopCommand,
         ConfigCommand,
-        CraftCommand,
-        TestCommand
+        CraftCommand
     )
 
     fun init() {
