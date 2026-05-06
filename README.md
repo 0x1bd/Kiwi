@@ -9,7 +9,7 @@ Kiwi is a high-performance, client-side pathfinding bot for Minecraft 1.21+ (Fab
 ## Features
 ### High-Performance Pathfinding
 **Kiwi** utilizes the **[Theta*](https://en.wikipedia.org/wiki/Theta*)** pathfinding algorithm. Theta* allows the bot to traverse in any angle, not just 0° or 45° like A* would.
-Here is a demonstration of this. On average this method is about 13% faster than basic A*.
+Here is a demonstration of this. On average this method is about 8% faster than basic A*.
 
 ![thetastar-astar-comparison.png](docs/thetastar-astar-comparison.png)
 
