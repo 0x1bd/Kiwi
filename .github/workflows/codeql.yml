@@ -61,7 +61,7 @@ jobs:
       shell: bash
       run: |
         chmod +x gradlew
-        ./gradlew assemble --build-cache
+        ./gradlew assemble
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
