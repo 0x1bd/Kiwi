@@ -2,8 +2,8 @@ package org.kvxd.kiwi.harvest
 
 import com.google.gson.JsonParser
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.block.Block
+import org.kvxd.kiwi.data.VanillaDataFiles
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -27,6 +27,7 @@ object HarvestDatabase {
 
         val dropsOverrides = buildDropOverrides()
         val lootTableDrops = parseLootTables()
+        val blockTags = VanillaBlockTags.load()
 
         var count = 0
         var errors = 0
@@ -36,8 +37,8 @@ object HarvestDatabase {
                 try {
                     val blockId = BuiltInRegistries.BLOCK.getKey(block).path
 
-                    val toolType = detectToolType(block)
-                    val minTier = detectToolTier(block)
+                    val toolType = detectToolType(blockId, blockTags)
+                    val minTier = detectToolTier(blockId, block, blockTags)
 
                     val requiresCorrectTool = try {
                         block.defaultBlockState().requiresCorrectToolForDrops()
@@ -78,29 +79,23 @@ object HarvestDatabase {
         logger.info("HarvestDatabase loaded: $count blocks, ${byDrop.size} drop types, $errors errors")
     }
 
-    private fun detectToolType(block: Block): HarvestToolType {
-        val blockState = block.defaultBlockState()
+    private fun detectToolType(blockId: String, blockTags: VanillaBlockTags): HarvestToolType {
         return when {
-            blockState.`is`(BlockTags.MINEABLE_WITH_PICKAXE) -> HarvestToolType.PICKAXE
-            blockState.`is`(BlockTags.MINEABLE_WITH_AXE) -> HarvestToolType.AXE
-            blockState.`is`(BlockTags.MINEABLE_WITH_SHOVEL) -> HarvestToolType.SHOVEL
-            blockState.`is`(BlockTags.MINEABLE_WITH_HOE) -> HarvestToolType.HOE
-            blockState.`is`(BlockTags.SWORD_EFFICIENT) -> HarvestToolType.SWORD
-            else -> throw IllegalStateException("Could not determine tool type for ${block.name}")
+            blockTags.contains("minecraft:mineable/pickaxe", blockId) -> HarvestToolType.PICKAXE
+            blockTags.contains("minecraft:mineable/axe", blockId) -> HarvestToolType.AXE
+            blockTags.contains("minecraft:mineable/shovel", blockId) -> HarvestToolType.SHOVEL
+            blockTags.contains("minecraft:mineable/hoe", blockId) -> HarvestToolType.HOE
+            blockTags.contains("minecraft:sword_efficient", blockId) -> HarvestToolType.SWORD
+            else -> HarvestToolType.ANY
         }
     }
 
-    private fun detectToolTier(block: Block): HarvestToolTier {
-        val blockState = block.defaultBlockState()
-        return try {
-            when {
-                blockState.`is`(BlockTags.NEEDS_DIAMOND_TOOL) -> HarvestToolTier.DIAMOND
-                blockState.`is`(BlockTags.NEEDS_IRON_TOOL) -> HarvestToolTier.IRON
-                blockState.`is`(BlockTags.NEEDS_STONE_TOOL) -> HarvestToolTier.STONE
-                else -> detectToolTierFallback(block)
-            }
-        } catch (_: Exception) {
-            detectToolTierFallback(block)
+    private fun detectToolTier(blockId: String, block: Block, blockTags: VanillaBlockTags): HarvestToolTier {
+        return when {
+            blockTags.contains("minecraft:needs_diamond_tool", blockId) -> HarvestToolTier.DIAMOND
+            blockTags.contains("minecraft:needs_iron_tool", blockId) -> HarvestToolTier.IRON
+            blockTags.contains("minecraft:needs_stone_tool", blockId) -> HarvestToolTier.STONE
+            else -> detectToolTierFallback(block)
         }
     }
 
@@ -139,7 +134,7 @@ object HarvestDatabase {
 
     private fun parseLootTables(): Map<String, String> {
         val drops = mutableMapOf<String, String>()
-        val inputs = collectResources("data/kiwi/loot_tables/vanilla/blocks", ".json")
+        val inputs = VanillaDataFiles.jsonInputs("loot_tables/blocks")
 
         for ((filename, stream) in inputs) {
             try {
@@ -185,50 +180,86 @@ object HarvestDatabase {
         return drops
     }
 
-    private fun collectResources(basePath: String, extension: String): List<Pair<String, InputStream>> {
-        val result = mutableListOf<Pair<String, InputStream>>()
-        val classLoader = HarvestDatabase::class.java.classLoader
-        val urls = classLoader.getResources(basePath).toList()
+    private class VanillaBlockTags(
+        private val directBlocks: Map<String, Set<String>>,
+        private val tagRefs: Map<String, Set<String>>
+    ) {
+        fun contains(tagId: String, blockId: String): Boolean {
+            return resolve(tagId, mutableSetOf()).contains(normalizeBlockId(blockId))
+        }
 
-        for (url in urls) {
-            when (url.protocol) {
-                "file" -> {
-                    val dir = try {
-                        java.nio.file.Paths.get(url.toURI())
-                    } catch (_: Exception) {
-                        continue
-                    }
-                    if (java.nio.file.Files.isDirectory(dir)) {
-                        java.nio.file.Files.list(dir).use { stream ->
-                            stream.filter { it.fileName.toString().endsWith(extension) }
-                                .forEach { path ->
-                                    val name = path.fileName.toString()
-                                    result.add(name to java.nio.file.Files.newInputStream(path))
-                                }
-                        }
-                    }
-                }
+        private fun resolve(tagId: String, visited: MutableSet<String>): Set<String> {
+            val normalized = normalizeTagId(tagId)
+            if (!visited.add(normalized)) return emptySet()
 
-                "jar" -> {
+            val result = directBlocks[normalized].orEmpty().toMutableSet()
+            for (ref in tagRefs[normalized].orEmpty()) {
+                result.addAll(resolve(ref, visited))
+            }
+            return result
+        }
+
+        companion object {
+            fun load(): VanillaBlockTags {
+                val directBlocks = mutableMapOf<String, MutableSet<String>>()
+                val tagRefs = mutableMapOf<String, MutableSet<String>>()
+
+                for ((filename, stream) in VanillaDataFiles.jsonInputs("tags/blocks")) {
                     try {
-                        val connection = url.openConnection() as? java.net.JarURLConnection ?: continue
-                        val jarFile = connection.jarFile
-                        val entries = jarFile.entries()
-                        val prefix = if (basePath.endsWith("/")) basePath else "$basePath/"
-                        while (entries.hasMoreElements()) {
-                            val entry = entries.nextElement()
-                            val entryName = entry.name
-                            if (!entry.isDirectory && entryName.startsWith(prefix) && entryName.endsWith(extension)) {
-                                val name = entryName.substringAfterLast("/")
-                                result.add(name to jarFile.getInputStream(entry))
-                            }
+                        val tagId = normalizeTagId(filename.removeSuffix(".json"))
+                        val (blocks, refs) = parseTagJson(stream)
+                        directBlocks.getOrPut(tagId) { mutableSetOf() }.addAll(blocks)
+                        tagRefs.getOrPut(tagId) { mutableSetOf() }.addAll(refs)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to parse block tag $filename: ${e.message}")
+                    } finally {
+                        try {
+                            stream.close()
+                        } catch (_: Exception) {
                         }
-                    } catch (_: Exception) {
-                        continue
                     }
                 }
+
+                logger.info("Loaded ${directBlocks.size} block tags")
+                return VanillaBlockTags(directBlocks, tagRefs)
+            }
+
+            private fun parseTagJson(stream: InputStream): Pair<Set<String>, Set<String>> {
+                val reader = InputStreamReader(stream, Charsets.UTF_8)
+                val json = JsonParser.parseReader(reader).asJsonObject
+                reader.close()
+
+                val values = json?.getAsJsonArray("values") ?: return emptySet<String>() to emptySet()
+                val blocks = mutableSetOf<String>()
+                val refs = mutableSetOf<String>()
+
+                for (elem in values) {
+                    val id = if (elem.isJsonPrimitive) {
+                        elem.asString
+                    } else if (elem.isJsonObject) {
+                        elem.asJsonObject.get("id")?.asString ?: continue
+                    } else {
+                        continue
+                    }
+
+                    if (id.startsWith("#")) {
+                        refs.add(normalizeTagId(id.removePrefix("#")))
+                    } else {
+                        blocks.add(normalizeBlockId(id))
+                    }
+                }
+
+                return blocks to refs
+            }
+
+            private fun normalizeTagId(tagId: String): String {
+                return if (tagId.contains(":")) tagId else "minecraft:$tagId"
+            }
+
+            private fun normalizeBlockId(blockId: String): String {
+                return if (blockId.contains(":")) blockId else "minecraft:$blockId"
             }
         }
-        return result
     }
+
 }

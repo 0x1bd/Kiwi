@@ -1,33 +1,36 @@
-package org.kvxd.kiwi.test
+package org.kvxd.kiwi.test.tests
 
-import net.fabricmc.fabric.api.gametest.v1.GameTest
-import net.minecraft.gametest.framework.GameTestHelper
 import org.kvxd.kiwi.agent.RecipeLookup
 import org.kvxd.kiwi.recipe.TagResolver
+import org.kvxd.kiwi.test.checkClientTest
 
-class TagResolverGameTests {
-    @GameTest(maxTicks = 100)
-    fun stoneToolMaterialsTagResolves(helper: GameTestHelper) = helper.runKiwiTest {
+internal object ClientTagResolverGameTests {
+
+    fun runAll() {
+        stoneToolMaterialsTagResolves()
+        stoneToolMaterialsExpandToHarvestableBlockSources()
+    }
+
+    private fun stoneToolMaterialsTagResolves() {
         val items = TagResolver.getItems("#minecraft:stone_tool_materials")
 
-        helper.assertThat(items.isNotEmpty()) {
+        checkClientTest(items.isNotEmpty()) {
             "tag resolves to empty set"
         }
-        helper.assertThat(items.any { it.removePrefix("minecraft:") == "cobblestone" }) {
+        checkClientTest(items.any { it.removePrefix("minecraft:") == "cobblestone" }) {
             "tag missing cobblestone: $items"
         }
     }
 
-    @GameTest(maxTicks = 100)
-    fun stoneToolMaterialsExpandToHarvestableBlockSources(helper: GameTestHelper) = helper.runKiwiTest {
+    private fun stoneToolMaterialsExpandToHarvestableBlockSources() {
         val items = TagResolver.getItems("#minecraft:stone_tool_materials")
             .map { it.removePrefix("minecraft:") }
         val blockSources = items.flatMap { RecipeLookup.findBlockAlternatives(it) }.toSet()
 
-        helper.assertThat("stone" in blockSources) {
+        checkClientTest("stone" in blockSources) {
             "stone tool material block sources missing stone: $blockSources"
         }
-        helper.assertThat("cobblestone" in blockSources) {
+        checkClientTest("cobblestone" in blockSources) {
             "stone tool material block sources missing cobblestone: $blockSources"
         }
     }

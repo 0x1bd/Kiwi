@@ -13,12 +13,8 @@
     "client": [
       "org.kvxd.kiwi.Kiwi"
     ],
-    "fabric-gametest": [
-      "org.kvxd.kiwi.test.HarvestDropGameTests",
-      "org.kvxd.kiwi.test.HarvestLookupGameTests",
-      "org.kvxd.kiwi.test.RegistryGameTests",
-      "org.kvxd.kiwi.test.RecipeGameTests",
-      "org.kvxd.kiwi.test.TagResolverGameTests"
+    "fabric-client-gametest": [
+      "org.kvxd.kiwi.test.KiwiClientGameTest"
     ],
     "fabric-datagen": [
       "org.kvxd.kiwi.datagen.KiwiDataGenerator"

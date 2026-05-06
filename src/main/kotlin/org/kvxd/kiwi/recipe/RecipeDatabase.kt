@@ -1,12 +1,7 @@
 package org.kvxd.kiwi.recipe
 
+import org.kvxd.kiwi.data.VanillaDataFiles
 import org.slf4j.LoggerFactory
-import java.io.InputStream
-import java.net.JarURLConnection
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 
 object RecipeDatabase {
 
@@ -25,8 +20,8 @@ object RecipeDatabase {
         byResult.clear()
         byIngredient.clear()
 
-        val recipeInputs = collectResources("data/kiwi/recipes/vanilla", ".json")
-        val tagInputs = collectResources("data/kiwi/tags/vanilla/items", ".json")
+        val recipeInputs = VanillaDataFiles.jsonInputs("recipes")
+        val tagInputs = VanillaDataFiles.jsonInputs("tags/items")
 
         if (tagInputs.isNotEmpty()) {
             TagResolver.load(tagInputs)
@@ -35,7 +30,7 @@ object RecipeDatabase {
         }
 
         if (recipeInputs.isEmpty()) {
-            logger.warn("No recipe JSONs found in data/kiwi/recipes/vanilla - run ./gradlew runDatagen first")
+            logger.warn("No vanilla recipe JSONs found in runtime data cache")
             return
         }
 
@@ -131,45 +126,4 @@ object RecipeDatabase {
         logger.info("  Unique ingredients: ${byIngredient.size}")
     }
 
-    private fun collectResources(basePath: String, extension: String): List<Pair<String, InputStream>> {
-        val result = mutableListOf<Pair<String, InputStream>>()
-        val classLoader = RecipeDatabase::class.java.classLoader
-        val urls = classLoader.getResources(basePath).toList()
-
-        for (url in urls) {
-            when (url.protocol) {
-                "file" -> {
-                    val dir = try { Paths.get(url.toURI()) } catch (_: Exception) { continue }
-                    if (Files.isDirectory(dir)) {
-                        Files.list(dir).use { stream ->
-                            stream.filter { it.fileName.toString().endsWith(extension) }
-                                .forEach { path ->
-                                    val name = path.fileName.toString()
-                                    result.add(name to Files.newInputStream(path))
-                                }
-                        }
-                    }
-                }
-                "jar" -> {
-                    try {
-                        val connection = url.openConnection() as? JarURLConnection ?: continue
-                        val jarFile = connection.jarFile
-                        val entries = jarFile.entries()
-                        val prefix = if (basePath.endsWith("/")) basePath else "$basePath/"
-                        while (entries.hasMoreElements()) {
-                            val entry = entries.nextElement()
-                            val entryName = entry.name
-                            if (!entry.isDirectory && entryName.startsWith(prefix) && entryName.endsWith(extension)) {
-                                val name = entryName.substringAfterLast("/")
-                                result.add(name to jarFile.getInputStream(entry))
-                            }
-                        }
-                    } catch (_: Exception) {
-                        continue
-                    }
-                }
-            }
-        }
-        return result
-    }
 }
