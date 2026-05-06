@@ -86,7 +86,6 @@ object DebugCommand : AbstractCommand("debug") {
             appendLine("    \"debugMode\": ${ConfigData.debugMode},")
             appendLine("    \"blockReach\": ${player.blockInteractionRange()},")
             appendLine("    \"entityReach\": ${player.entityInteractionRange()},")
-            appendLine("    \"maxIterations\": ${ConfigData.maxIterations},")
             appendLine("    \"blockScanRadius\": ${ConfigData.blockScanRadius},")
             appendLine("    \"stuckThresholdTicks\": ${ConfigData.stuckThresholdTicks}")
             appendLine("  },")

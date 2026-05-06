@@ -1,10 +1,10 @@
 package org.kvxd.kiwi.agent.pathing.calc
 
 import net.minecraft.core.BlockPos
-import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.agent.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.agent.pathing.goal.Goal
 import org.kvxd.kiwi.agent.pathing.move.MovementProvider
+import org.kvxd.kiwi.level
 import kotlin.math.sqrt
 
 class ThetaStar {
@@ -34,19 +34,15 @@ class ThetaStar {
         var iterations = 0
         var nodesVisited = 0
 
-        val maxOps = ConfigData.maxIterations
-
         var finalPath: NodePath? = null
         var found = false
-        var isPartial = false
+        var bestFrontierNode: Node? = null
+
+        val approximateTarget = goal.getApproximateTarget()
+        val targetOutsideLoadedChunks = !level.isLoaded(approximateTarget)
 
         while (!openSet.isEmpty()) {
-            if (iterations++ > maxOps) {
-                if (bestNode != startNode) {
-                    isPartial = true
-                }
-                break
-            }
+            iterations++
 
             val current = openSet.poll() ?: break
             nodesVisited++
@@ -64,6 +60,11 @@ class ThetaStar {
 
             val currentLong = current.posLong
             if (!closedSet.add(currentLong)) continue
+
+            if (isLoadedChunkFrontier(current.pos, approximateTarget) && current.costH < hStart) {
+                bestFrontierNode = current
+                break
+            }
 
             neighborBuffer.clear()
             MovementProvider.getNeighbors(current, goal.getApproximateTarget(), neighborBuffer)
@@ -126,8 +127,26 @@ class ThetaStar {
             }
         }
 
-        if (found || isPartial) {
-            finalPath = reconstructPath(bestNode, isPartial)
+        val missingCapabilities = PathSearchDiagnostics.missingCapabilities()
+        val status: PathStatus
+        val reason: PathFailureReason?
+
+        if (found) {
+            finalPath = reconstructPath(bestNode, false)
+            status = PathStatus.COMPLETE
+            reason = null
+        } else if (bestFrontierNode != null && bestFrontierNode != startNode) {
+            finalPath = reconstructPath(bestFrontierNode, true)
+            status = PathStatus.PARTIAL
+            reason = PathFailureReason.OutsideLoadedChunks
+        } else {
+            status = PathStatus.UNREACHABLE
+            reason = when {
+                missingCapabilities.isNotEmpty() -> PathFailureReason.MissingCapability(missingCapabilities)
+                nodesVisited <= 1 -> PathFailureReason.NoLegalMoves
+                targetOutsideLoadedChunks -> PathFailureReason.OutsideLoadedChunks
+                else -> PathFailureReason.NoLegalMoves
+            }
         }
 
         val endTime = System.nanoTime()
@@ -138,8 +157,25 @@ class ThetaStar {
             nodesVisited = nodesVisited,
             timeComputedMs = durationMs,
             iterations = iterations,
-            isPartial = isPartial
+            status = status,
+            reason = reason
         )
+    }
+
+    private fun isLoadedChunkFrontier(pos: BlockPos, target: BlockPos): Boolean {
+        val currentDistance = pos.distSqr(target)
+
+        for (dx in -1..1) {
+            for (dz in -1..1) {
+                if (dx == 0 && dz == 0) continue
+
+                val neighbor = pos.offset(dx, 0, dz)
+                if (!level.isLoaded(neighbor) && neighbor.distSqr(target) < currentDistance) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private fun reconstructPath(node: Node, isPartial: Boolean): NodePath {

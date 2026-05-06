@@ -8,7 +8,7 @@ import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.player
 
 class StuckDetector(
-    private val distanceSq: Double = 0.0025
+    private val distanceSq: Double = 0.0004
 ) {
     var ticks: Int = 0
         private set

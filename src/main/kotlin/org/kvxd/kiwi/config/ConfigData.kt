@@ -4,6 +4,7 @@ import org.kvxd.kiwi.config.entries.boolean
 import org.kvxd.kiwi.config.entries.double
 import org.kvxd.kiwi.config.entries.int
 import org.kvxd.kiwi.config.entries.string
+import org.kvxd.kiwi.util.resolveBlockId
 
 object ConfigData {
 
@@ -11,12 +12,6 @@ object ConfigData {
         "maxFallHeight",
         "Max blocks Kiwi is allowed to fall from",
         3
-    )
-
-    var maxIterations by int(
-        "maxIterations",
-        "Maximum iterations the pathfinding algorithm can perform",
-        20_000
     )
 
     var horizontalDeviationThreshold by double(
@@ -82,6 +77,9 @@ object ConfigData {
     val allowedBuildBlockIds: Set<String>
         get() = allowedBuildBlocks.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
+    val allowedBuildBlockTypes
+        get() = allowedBuildBlockIds.mapNotNull { resolveBlockId(it) }.toSet()
+
     var safeToMineBlocks by string(
         "safeToMineBlocks",
         "Comma-separated block IDs that are safe to mine when they block the way",
@@ -90,6 +88,9 @@ object ConfigData {
 
     val safeToMineBlockIds: Set<String>
         get() = safeToMineBlocks.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
+    val safeToMineBlockTypes
+        get() = safeToMineBlockIds.mapNotNull { resolveBlockId(it) }.toSet()
 
     var blockScanRadius by int(
         "blockScanRadius",

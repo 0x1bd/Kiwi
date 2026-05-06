@@ -1,6 +1,5 @@
 package org.kvxd.kiwi.agent.pathing.execute.types
 
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.BlockItem
 import org.kvxd.kiwi.agent.Agent
 import org.kvxd.kiwi.config.ConfigData
@@ -16,6 +15,7 @@ import org.kvxd.kiwi.agent.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.InventoryUtil
+import org.kvxd.kiwi.util.registryPath
 
 object PillarExecutor : MovementExecutor {
 
@@ -48,13 +48,11 @@ object PillarExecutor : MovementExecutor {
                 val blockItem = stack.item as? BlockItem
                 if (blockItem == null) false
                 else {
-                    val blockId = BuiltInRegistries.BLOCK.getKey(blockItem.block).path
-                    blockId in ConfigData.allowedBuildBlockIds
+                    blockItem.block in ConfigData.allowedBuildBlockTypes
                 }
             }, { stack ->
                 val blockItem = stack.item as? BlockItem ?: return@ensureInHotbar false
-                val blockId = BuiltInRegistries.BLOCK.getKey(blockItem.block).path
-                blockId in Agent.context.minedItemIds
+                blockItem.block.registryPath in Agent.context.minedItemIds
             })) {
             ClientMessenger.error("No allowed blocks in inventory for pillaring")
             PathNavigator.stop()

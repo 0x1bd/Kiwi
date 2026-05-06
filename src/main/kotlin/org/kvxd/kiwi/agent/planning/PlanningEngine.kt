@@ -1,6 +1,8 @@
 package org.kvxd.kiwi.agent.planning
 
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import org.kvxd.kiwi.agent.ItemSource
 import org.kvxd.kiwi.agent.Recipe
 import org.kvxd.kiwi.agent.RecipeLookup
@@ -12,6 +14,7 @@ import org.kvxd.kiwi.harvest.HarvestToolTier
 import org.kvxd.kiwi.harvest.HarvestToolType
 import org.kvxd.kiwi.recipe.ParsedRecipe
 import org.kvxd.kiwi.recipe.RecipeGraph
+import org.kvxd.kiwi.util.registryPath
 import kotlin.math.max
 
 object PlanningEngine {
@@ -36,8 +39,8 @@ object PlanningEngine {
 
     class EnvironmentQuery(
         val findNearestDrop: (String) -> BlockPos?,
-        val findNearestBlock: (String) -> BlockPos?,
-        val findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        val findNearestBlock: (Block) -> BlockPos?,
+        val findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     )
 
     sealed class PlanDecision {
@@ -52,13 +55,15 @@ object PlanningEngine {
         ) : PlanDecision()
 
         data class MineBlock(
-            val blockId: String,
+            val block: Block,
             val targetPos: BlockPos,
             val dropId: String,
             val count: Int = 1,
             override val reason: String = "visible harvest source",
             override val score: Double = 0.0
-        ) : PlanDecision()
+        ) : PlanDecision() {
+            val blockId: String get() = block.registryPath
+        }
 
         data class CraftItem(
             val itemId: String,
@@ -96,13 +101,13 @@ object PlanningEngine {
         val ancestors = plan.goals.dropLast(1).mapTo(mutableSetOf()) { it.itemId }
         val blockedItems = plan.blockedCraftItems + plan.blockedMineItems
         val dropCache = mutableMapOf<String, BlockPos?>()
-        val blockCache = mutableMapOf<String, Pair<String, BlockPos>?>()
+        val blockCache = mutableMapOf<String, Pair<Block, BlockPos>?>()
         val cachedFindNearestDrop: (String) -> BlockPos? = { id ->
             dropCache.getOrPut(id) { plan.environment.findNearestDrop(id) }
         }
-        val cachedFindClosestBlock: (List<String>) -> Pair<String, BlockPos>? = { ids ->
-            val key = ids.distinct().sorted().joinToString("|")
-            blockCache.getOrPut(key) { plan.environment.findClosestBlock(ids) }
+        val cachedFindClosestBlock: (List<Block>) -> Pair<Block, BlockPos>? = { blocks ->
+            val key = blocks.distinct().map { it.registryPath }.sorted().joinToString("|")
+            blockCache.getOrPut(key) { plan.environment.findClosestBlock(blocks) }
         }
 
         val drop = cachedFindNearestDrop(activeGoal.itemId)
@@ -158,7 +163,7 @@ object PlanningEngine {
         plan: PlanRequest,
         ancestors: Set<String>,
         blockedItems: Set<String>,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ) {
         if (activeGoal.itemId in plan.blockedMineItems) return
 
@@ -167,8 +172,8 @@ object PlanningEngine {
         val craftingRecipes = RecipeLookup.getRecipesFor(activeGoal.itemId)
         if (craftingRecipes.isNotEmpty() && harvest.isSelfDrop) return
 
-        val blockIds = harvestSources.map { it.blockId }.distinct()
-        val best = findClosestBlock(blockIds) ?: plan.environment.findNearestBlock(harvest.blockId)?.let { harvest.blockId to it }
+        val blocks = harvestSources.map { it.block }.distinct()
+        val best = findClosestBlock(blocks) ?: plan.environment.findNearestBlock(harvest.block)?.let { harvest.block to it }
         if (best == null) {
             if (harvestSources.any { !it.isSelfDrop }) {
                 candidates.add(
@@ -190,7 +195,7 @@ object PlanningEngine {
                         PlanDecision.AcquireItem(
                             missingTool,
                             1,
-                            "need $missingTool to mine ${best.first}",
+                            "need $missingTool to mine ${best.first.registryPath}",
                             score = 760.0
                         ),
                         760.0
@@ -223,7 +228,7 @@ object PlanningEngine {
         ancestors: Set<String>,
         blockedItems: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ) {
         if (activeGoal.itemId in plan.blockedCraftItems) return
 
@@ -247,7 +252,7 @@ object PlanningEngine {
 
         if (bestCraftPlan.canCraft) {
             if (bestCraftPlan.recipe.source == ItemSource.CRAFTING_TABLE) {
-                val tableNearby = plan.environment.findNearestBlock(WorkstationIds.CRAFTING_TABLE)
+                val tableNearby = plan.environment.findNearestBlock(Blocks.CRAFTING_TABLE)
                 val hasTable = (plan.inventoryCounts[WorkstationIds.CRAFTING_TABLE] ?: 0) > 0
                 if (!hasTable && tableNearby == null && WorkstationIds.CRAFTING_TABLE !in ancestors) {
                     candidates.add(
@@ -304,7 +309,7 @@ object PlanningEngine {
         ancestors: Set<String>,
         blockedItems: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ) {
         if (activeGoal.itemId in plan.blockedCraftItems) return
 
@@ -337,7 +342,7 @@ object PlanningEngine {
                     )
                     continue
                 }
-                val hasFurnace = (plan.inventoryCounts["furnace"] ?: 0) > 0 || plan.environment.findNearestBlock("furnace") != null
+                val hasFurnace = (plan.inventoryCounts["furnace"] ?: 0) > 0 || plan.environment.findNearestBlock(Blocks.FURNACE) != null
                 if (!hasFurnace && "furnace" !in ancestors) {
                     candidates.add(
                         ScoredDecision(
@@ -397,7 +402,7 @@ object PlanningEngine {
         blockedItems: Set<String>,
         ancestors: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ): RecipePlan? {
         if (activeGoal.itemId in blockedItems) return null
 
@@ -429,7 +434,7 @@ object PlanningEngine {
         ancestors: Set<String>,
         blockedItems: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ): List<MissingNeed> {
         val simulated = inventoryCounts.toMutableMap()
         val missing = mutableListOf<MissingNeed>()
@@ -472,7 +477,7 @@ object PlanningEngine {
         ancestors: Set<String>,
         blockedItems: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ): MissingNeed {
         val ranked = itemIds.map { id ->
             val score = scoreSource(id, activeGoal, ancestors, blockedItems, findNearestDrop, findClosestBlock)
@@ -487,7 +492,7 @@ object PlanningEngine {
         ancestors: Set<String>,
         blockedItems: Set<String>,
         findNearestDrop: (String) -> BlockPos?,
-        findClosestBlock: (List<String>) -> Pair<String, BlockPos>?
+        findClosestBlock: (List<Block>) -> Pair<Block, BlockPos>?
     ): Double {
         if (itemId == activeGoal.itemId || itemId in ancestors) return -800.0
         if (itemId in blockedItems) return -900.0
@@ -495,8 +500,8 @@ object PlanningEngine {
 
         val harvestSources = RecipeLookup.getHarvestSourcesForDrop(itemId)
         if (harvestSources.isNotEmpty()) {
-            val blockIds = harvestSources.map { it.blockId }.distinct()
-            if (findClosestBlock(blockIds) != null) return 95.0
+            val blocks = harvestSources.map { it.block }.distinct()
+            if (findClosestBlock(blocks) != null) return 95.0
             if (harvestSources.any { !it.isSelfDrop }) return 45.0
         }
 

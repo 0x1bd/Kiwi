@@ -4,11 +4,11 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
+import org.kvxd.kiwi.util.resolveBlockId
 
 object ScanUtil {
 
@@ -25,16 +25,12 @@ object ScanUtil {
     )
 
     private val blockNameCache = mutableMapOf<String, Block?>()
-    private val knownPositions = mutableMapOf<String, MutableSet<BlockPos>>()
+    private val knownPositions = mutableMapOf<Block, MutableSet<BlockPos>>()
     private var lastKnownOrigin = BlockPos.ZERO
     private const val POSITION_STALE_DISTANCE = 32
 
     fun resolveBlock(blockName: String): Block? {
-        return blockNameCache.getOrPut(blockName) {
-            BuiltInRegistries.BLOCK.firstOrNull {
-                BuiltInRegistries.BLOCK.getKey(it).path == blockName
-            }
-        }
+        return blockNameCache.getOrPut(blockName) { resolveBlockId(blockName) }
     }
 
     fun findNearestByName(
@@ -197,8 +193,7 @@ object ScanUtil {
     }
 
     private fun cachePosition(origin: BlockPos, block: Block, pos: BlockPos) {
-        val name = BuiltInRegistries.BLOCK.getKey(block).path
-        knownPositions.getOrPut(name) { mutableSetOf() }.add(pos)
+        knownPositions.getOrPut(block) { mutableSetOf() }.add(pos)
         lastKnownOrigin = origin
     }
 
@@ -207,8 +202,7 @@ object ScanUtil {
             knownPositions.clear()
             return null
         }
-        val name = BuiltInRegistries.BLOCK.getKey(block).path
-        return knownPositions[name]?.firstOrNull()
+        return knownPositions[block]?.firstOrNull()
     }
 
     fun findNearestDroppedItem(

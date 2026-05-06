@@ -1,5 +1,6 @@
 package org.kvxd.kiwi.test.tests
 
+import net.minecraft.world.level.block.Blocks
 import org.kvxd.kiwi.agent.RecipeLookup
 import org.kvxd.kiwi.recipe.TagResolver
 import org.kvxd.kiwi.test.checkClientTest
@@ -27,10 +28,10 @@ internal object ClientTagResolverGameTests {
             .map { it.removePrefix("minecraft:") }
         val blockSources = items.flatMap { RecipeLookup.findBlockAlternatives(it) }.toSet()
 
-        checkClientTest("stone" in blockSources) {
+        checkClientTest(Blocks.STONE in blockSources) {
             "stone tool material block sources missing stone: $blockSources"
         }
-        checkClientTest("cobblestone" in blockSources) {
+        checkClientTest(Blocks.COBBLESTONE in blockSources) {
             "stone tool material block sources missing cobblestone: $blockSources"
         }
     }

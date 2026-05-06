@@ -1,7 +1,7 @@
 package org.kvxd.kiwi.agent.runtime.actions
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 import org.kvxd.kiwi.agent.control.MovementController
@@ -18,11 +18,14 @@ import org.kvxd.kiwi.isBlockInReach
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
+import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.math.RotationUtils
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
-data class BlockInfo(val id: String, val alternatives: List<String> = emptyList(), val dropId: String = id)
+data class BlockInfo(val block: Block, val alternatives: List<Block> = emptyList(), val dropId: String = block.registryPath) {
+    val id: String get() = block.registryPath
+}
 
 private const val MINING_STAND_REACH = 0.75
 
@@ -38,8 +41,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
             val state = level.getBlockState(pos)
             if (state.isAir) break
 
-            val currentBlockId = BuiltInRegistries.BLOCK.getKey(state.block).path
-            if (currentBlockId != blockInfo.id && currentBlockId !in blockInfo.alternatives) break
+            if (state.block != blockInfo.block && state.block !in blockInfo.alternatives) break
 
             if (!isBlockInReach(pos)) {
                 val cleared = clearObstruction(pos, blockInfo)
@@ -142,16 +144,16 @@ private fun currentHitObstruction(target: BlockPos, blockInfo: BlockInfo): Block
     val state = level.getBlockState(hitPos)
     if (state.isAir || !CollisionCache.isSolid(hitPos)) return null
 
-    val hitBlockId = BuiltInRegistries.BLOCK.getKey(state.block).path
-    if (hitBlockId == blockInfo.id || hitBlockId in blockInfo.alternatives) return null
+    val hitBlock = state.block
+    if (hitBlock == blockInfo.block || hitBlock in blockInfo.alternatives) return null
 
-    return hitPos.takeIf { canClearMiningObstruction(it, target, hitBlockId) }
+    return hitPos.takeIf { canClearMiningObstruction(it, target, hitBlock) }
 }
 
 private suspend fun AgentRuntime.mineObstruction(pos: BlockPos) {
-    val hitBlockId = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).block).path
+    val hitBlock = level.getBlockState(pos).block
     try {
-        mineBlock(BlockInfo(hitBlockId, dropId = hitBlockId), pos)
+        mineBlock(BlockInfo(hitBlock, dropId = hitBlock.registryPath), pos)
     } catch (_: AgentFailure) {
     } finally {
         InputOverride.update { attack = false }
@@ -166,10 +168,10 @@ private suspend fun AgentRuntime.clearObstruction(target: BlockPos, blockInfo: B
         val hitState = level.getBlockState(hitPos)
         if (hitState.isAir) return true
 
-        val hitBlockId = BuiltInRegistries.BLOCK.getKey(hitState.block).path
-        if (hitBlockId == blockInfo.id || hitBlockId in blockInfo.alternatives) return false
+        val hitBlock = hitState.block
+        if (hitBlock == blockInfo.block || hitBlock in blockInfo.alternatives) return false
 
-        if (CollisionCache.isSolid(hitPos) && canClearMiningObstruction(hitPos, target, hitBlockId)) {
+        if (CollisionCache.isSolid(hitPos) && canClearMiningObstruction(hitPos, target, hitBlock)) {
             mineObstruction(hitPos)
             return true
         }
@@ -177,10 +179,10 @@ private suspend fun AgentRuntime.clearObstruction(target: BlockPos, blockInfo: B
     return false
 }
 
-private fun canClearMiningObstruction(pos: BlockPos, target: BlockPos, blockId: String): Boolean {
+private fun canClearMiningObstruction(pos: BlockPos, target: BlockPos, block: Block): Boolean {
     if (!CollisionCache.isSolid(pos)) return false
     if (CollisionCache.isLeaf(pos)) return true
-    if (blockId in ConfigData.safeToMineBlockIds) return true
+    if (block in ConfigData.safeToMineBlockTypes) return true
     return isSameColumnDigDownObstruction(pos, target)
 }
 

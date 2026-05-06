@@ -2,10 +2,13 @@ package org.kvxd.kiwi.agent.pathing.move.types
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import org.kvxd.kiwi.agent.capability.MovementCapability
+import org.kvxd.kiwi.agent.capability.MovementCapabilities
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.agent.pathing.cache.CollisionCache
 import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
+import org.kvxd.kiwi.agent.pathing.calc.PathSearchDiagnostics
 import org.kvxd.kiwi.agent.pathing.move.AbstractMovement
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil
 
@@ -30,12 +33,14 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
                 val landingBlock = currentDropPos.below()
 
                 if (CollisionCache.hasState(landingBlock, CollisionCache.WATER)) {
-                    if (ConfigData.allowWater) {
+                    if (MovementCapabilities.require(MovementCapability.WATER_TRAVERSAL)) {
                         val miningPlan = MovementObstructionUtil.planMining(dropBlocksToBreak)
                         if (miningPlan != null) {
                             val cost = BASE_COST + (i * 0.2)
                             output.append(currentDropPos, current, target, cost, miningPlan = miningPlan)
                         }
+                    } else {
+                        PathSearchDiagnostics.require(MovementCapability.WATER_TRAVERSAL)
                     }
                     break
                 }

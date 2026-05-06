@@ -1,5 +1,8 @@
 package org.kvxd.kiwi.harvest
 
+import net.minecraft.world.level.block.Block
+import org.kvxd.kiwi.util.registryPath
+
 enum class HarvestToolType {
     PICKAXE,
     AXE,
@@ -27,13 +30,15 @@ enum class HarvestToolTier(val level: Int) {
 }
 
 data class BlockHarvestInfo(
-    val blockId: String,
+    val block: Block,
     val primaryDropId: String,
     val dropCount: IntRange,
     val toolType: HarvestToolType,
     val minTier: HarvestToolTier,
     val requiresCorrectTool: Boolean
 ) {
+    val blockId: String get() = block.registryPath
+
     val isSelfDrop: Boolean get() = blockId == primaryDropId
 
     fun bestToolItemId(): String? {

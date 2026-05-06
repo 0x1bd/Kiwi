@@ -4,6 +4,8 @@ import com.google.gson.JsonParser
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import org.kvxd.kiwi.data.VanillaDataFiles
+import org.kvxd.kiwi.util.registryPath
+import org.kvxd.kiwi.util.resolveBlockId
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -12,12 +14,12 @@ object HarvestDatabase {
 
     private val logger = LoggerFactory.getLogger("kiwi:HarvestDatabase")
 
-    private val byBlock = mutableMapOf<String, BlockHarvestInfo>()
+    private val byBlock = mutableMapOf<Block, BlockHarvestInfo>()
     private val byDrop = mutableMapOf<String, MutableList<BlockHarvestInfo>>()
 
     val isLoaded: Boolean get() = byBlock.isNotEmpty()
 
-    val allBlocks: Collection<BlockHarvestInfo> get() = byBlock.values.distinctBy { it.blockId }
+    val allBlocks: Collection<BlockHarvestInfo> get() = byBlock.values
 
     fun load() {
         byBlock.clear()
@@ -35,7 +37,7 @@ object HarvestDatabase {
         try {
             for (block in BuiltInRegistries.BLOCK) {
                 try {
-                    val blockId = BuiltInRegistries.BLOCK.getKey(block).path
+                    val blockId = block.registryPath
 
                     val toolType = detectToolType(blockId, blockTags)
                     val minTier = detectToolTier(blockId, block, blockTags)
@@ -52,7 +54,7 @@ object HarvestDatabase {
                         ?: blockId
 
                     val info = BlockHarvestInfo(
-                        blockId = blockId,
+                        block = block,
                         primaryDropId = dropId,
                         dropCount = 1..1,
                         toolType = toolType,
@@ -60,8 +62,7 @@ object HarvestDatabase {
                         requiresCorrectTool = requiresCorrectTool
                     )
 
-                    byBlock[blockId] = info
-                    byBlock[fullBlockId] = info
+                    byBlock[block] = info
                     byDrop.getOrPut(dropId) { mutableListOf() }.add(info)
                     count++
                 } catch (e: Exception) {
@@ -110,9 +111,12 @@ object HarvestDatabase {
         }
     }
 
+    fun getForBlock(block: Block): BlockHarvestInfo? {
+        return byBlock[block]
+    }
+
     fun getForBlock(blockId: String): BlockHarvestInfo? {
-        val key = if (blockId.contains(":")) blockId.substringAfterLast(":") else blockId
-        return byBlock[key] ?: byBlock[blockId]
+        return resolveBlockId(blockId)?.let { getForBlock(it) }
     }
 
     fun getBlocksForDrop(dropId: String): List<BlockHarvestInfo> {
@@ -120,8 +124,12 @@ object HarvestDatabase {
         return byDrop[key] ?: byDrop[dropId] ?: emptyList()
     }
 
-    fun findBlockAlternatives(dropId: String): List<String> {
-        return getBlocksForDrop(dropId).map { it.blockId }.distinct()
+    fun findBlockAlternatives(dropId: String): List<Block> {
+        return getBlocksForDrop(dropId).map { it.block }.distinct()
+    }
+
+    fun bestToolForBlock(block: Block): String? {
+        return getForBlock(block)?.bestToolItemId()
     }
 
     fun bestToolForBlock(blockId: String): String? {

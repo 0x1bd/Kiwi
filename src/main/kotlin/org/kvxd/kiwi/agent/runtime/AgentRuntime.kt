@@ -67,26 +67,21 @@ class AgentRuntime(
         ScanUtil.findNearestDroppedItem(itemId = itemId, radius = ConfigData.dropScanRadius)
             ?.blockPosition()
 
-    fun findNearestBlock(blockId: String): BlockPos? {
-        val remembered = agent.findRememberedBlock(blockId)
-        if (remembered != null && !isFailedBlock(blockId, remembered) && isReachableBlock(remembered)) {
+    fun findNearestBlock(block: Block): BlockPos? {
+        val remembered = agent.findRememberedBlock(block)
+        if (remembered != null && !isFailedBlock(block, remembered) && isReachableBlock(remembered)) {
             return remembered
         }
 
-        return findNearestReachableBlock(blockId)
+        return findNearestReachableBlock(block)
     }
 
-    fun findClosestBlock(blockIds: List<String>): Pair<String, BlockPos>? {
-        val blocks = blockIds
-            .asSequence()
-            .distinct()
-            .mapNotNull { ScanUtil.resolveBlock(it) }
-            .toSet()
-        if (blocks.isEmpty()) return null
+    fun findClosestBlock(blocks: List<Block>): Pair<Block, BlockPos>? {
+        val blockSet = blocks.toSet()
+        if (blockSet.isEmpty()) return null
 
-        val found = findClosestMineableBlock(blocks) ?: findDigDownTarget(blocks) ?: return null
-        val name = BuiltInRegistries.BLOCK.getKey(found.block).path
-        return name to found.pos
+        val found = findClosestMineableBlock(blockSet) ?: findDigDownTarget(blockSet) ?: return null
+        return found.block to found.pos
     }
 
     fun pushGoal(itemId: String, amount: Int, reason: String): GoalAgenda.PushResult {
@@ -105,12 +100,12 @@ class AgentRuntime(
 
     fun topGoal(): GoalFrame? = agenda.top()
 
-    fun markFailedBlock(blockId: String, pos: BlockPos) {
-        agent.context.markFailedBlock(blockId, pos)
+    fun markFailedBlock(block: Block, pos: BlockPos) {
+        agent.context.markFailedBlock(block, pos)
     }
 
-    fun isFailedBlock(blockId: String, pos: BlockPos): Boolean {
-        return agent.context.isFailedBlock(blockId, pos)
+    fun isFailedBlock(block: Block, pos: BlockPos): Boolean {
+        return agent.context.isFailedBlock(block, pos)
     }
 
     fun updateDebug() {
@@ -129,8 +124,7 @@ class AgentRuntime(
         RotationManager.reset()
     }
 
-    private fun findNearestReachableBlock(blockId: String): BlockPos? {
-        val blockType = ScanUtil.resolveBlock(blockId) ?: return null
+    private fun findNearestReachableBlock(blockType: Block): BlockPos? {
         val origin = player.blockPosition()
         val radius = ConfigData.blockScanRadius
 
@@ -142,7 +136,7 @@ class AgentRuntime(
         )
 
         val reachable = result.targets
-            .filter { !isFailedBlock(blockId, it.pos) && isReachableBlock(it.pos) }
+            .filter { !isFailedBlock(blockType, it.pos) && isReachableBlock(it.pos) }
             .minByOrNull { it.distance }
 
         return reachable?.pos
@@ -187,8 +181,7 @@ class AgentRuntime(
                         val block = level.getBlockState(pos).block
                         if (block !in blocks) continue
 
-                        val name = BuiltInRegistries.BLOCK.getKey(block).path
-                        if (isFailedBlock(name, pos) || !isReachableBlock(pos) || !MiningTargeting.canMineFromCurrentOrStand(pos)) continue
+                        if (isFailedBlock(block, pos) || !isReachableBlock(pos) || !MiningTargeting.canMineFromCurrentOrStand(pos)) continue
 
                         val dx = x - origin.x
                         val dy = y - origin.y
@@ -229,8 +222,7 @@ class AgentRuntime(
                         val block = level.getBlockState(pos).block
                         if (block !in blocks) continue
 
-                        val name = BuiltInRegistries.BLOCK.getKey(block).path
-                        if (isFailedBlock(name, pos) || MiningTargeting.findStandPosition(pos) == null) continue
+                        if (isFailedBlock(block, pos) || MiningTargeting.findStandPosition(pos) == null) continue
 
                         val distance = kotlin.math.sqrt(origin.distSqr(pos))
                         val candidate = ScanUtil.BlockScanTarget(pos, block, distance)

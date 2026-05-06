@@ -1,9 +1,22 @@
 package org.kvxd.kiwi.harvest
 
+import net.minecraft.SharedConstants
+import net.minecraft.server.Bootstrap
+import net.minecraft.world.level.block.Blocks
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
 class HarvestDataTest {
+
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun bootstrapMinecraft() {
+            SharedConstants.tryDetectVersion()
+            Bootstrap.bootStrap()
+        }
+    }
 
     @Test
     fun `tool tier level order`() {
@@ -28,7 +41,7 @@ class HarvestDataTest {
     @Test
     fun `BlockHarvestInfo isSelfDrop`() {
         val selfDrop = BlockHarvestInfo(
-            blockId = "oak_log",
+            block = Blocks.OAK_LOG,
             primaryDropId = "oak_log",
             dropCount = 1..1,
             toolType = HarvestToolType.AXE,
@@ -38,7 +51,7 @@ class HarvestDataTest {
         assertTrue(selfDrop.isSelfDrop)
 
         val nonSelfDrop = BlockHarvestInfo(
-            blockId = "stone",
+            block = Blocks.STONE,
             primaryDropId = "cobblestone",
             dropCount = 1..1,
             toolType = HarvestToolType.PICKAXE,
@@ -51,7 +64,7 @@ class HarvestDataTest {
     @Test
     fun `bestToolItemId for pickaxe tiers`() {
         val diamondPick = BlockHarvestInfo(
-            blockId = "diamond_ore",
+            block = Blocks.DIAMOND_ORE,
             primaryDropId = "raw_diamond",
             dropCount = 1..1,
             toolType = HarvestToolType.PICKAXE,
@@ -61,7 +74,7 @@ class HarvestDataTest {
         assertEquals("minecraft:iron_pickaxe", diamondPick.bestToolItemId())
 
         val netheritePick = BlockHarvestInfo(
-            blockId = "ancient_debris",
+            block = Blocks.ANCIENT_DEBRIS,
             primaryDropId = "ancient_debris",
             dropCount = 1..1,
             toolType = HarvestToolType.PICKAXE,
@@ -74,7 +87,7 @@ class HarvestDataTest {
     @Test
     fun `bestToolItemId returns null for NONE and ANY`() {
         val noTool = BlockHarvestInfo(
-            blockId = "dirt",
+            block = Blocks.DIRT,
             primaryDropId = "dirt",
             dropCount = 1..1,
             toolType = HarvestToolType.NONE,
@@ -84,7 +97,7 @@ class HarvestDataTest {
         assertNull(noTool.bestToolItemId())
 
         val anyTool = BlockHarvestInfo(
-            blockId = "glass",
+            block = Blocks.GLASS,
             primaryDropId = "glass",
             dropCount = 1..1,
             toolType = HarvestToolType.ANY,
@@ -97,7 +110,7 @@ class HarvestDataTest {
     @Test
     fun `bestToolItemId for shears`() {
         val shears = BlockHarvestInfo(
-            blockId = "cobweb",
+            block = Blocks.COBWEB,
             primaryDropId = "string",
             dropCount = 1..1,
             toolType = HarvestToolType.SHEARS,

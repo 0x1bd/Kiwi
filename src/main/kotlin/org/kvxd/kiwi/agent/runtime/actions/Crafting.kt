@@ -30,6 +30,7 @@ import org.kvxd.kiwi.isCrosshairOnBlock
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.InventoryUtil
+import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.math.RotationUtils
 import kotlinx.coroutines.delay
 import net.minecraft.world.inventory.ContainerInput
@@ -94,19 +95,19 @@ suspend fun AgentRuntime.smeltItem(recipe: Recipe) {
 }
 
 private suspend fun AgentRuntime.findOrPlaceCraftingTable(): BlockPos {
-    val remembered = agent.findRememberedBlock(WorkstationIds.CRAFTING_TABLE)
+    val remembered = agent.findRememberedBlock(Blocks.CRAFTING_TABLE)
     if (remembered != null) return remembered
 
     val nearby = ScanUtil.findNearestByType(radius = ConfigData.craftTableScanRadius, blockType = Blocks.CRAFTING_TABLE)
     if (nearby != null) {
-        agent.rememberBlock(WorkstationIds.CRAFTING_TABLE, nearby.pos)
+        agent.rememberBlock(Blocks.CRAFTING_TABLE, nearby.pos)
         return nearby.pos
     }
 
     return placeWorkstation(
         item = Items.CRAFTING_TABLE,
         block = Blocks.CRAFTING_TABLE,
-        memoryId = WorkstationIds.CRAFTING_TABLE,
+        memoryBlock = Blocks.CRAFTING_TABLE,
         missingMessage = "No crafting table in inventory"
     )
 }
@@ -114,13 +115,13 @@ private suspend fun AgentRuntime.findOrPlaceCraftingTable(): BlockPos {
 private suspend fun AgentRuntime.placeWorkstation(
     item: Item,
     block: Block,
-    memoryId: String,
+    memoryBlock: Block,
     missingMessage: String
 ): BlockPos {
     if (!InventoryUtil.ensureInHotbar(item)) throw AgentFailure(missingMessage)
 
     val target = findPlacementTarget(player.blockPosition())
-        ?: throw AgentFailure("No place for ${BuiltInRegistries.BLOCK.getKey(block).path}")
+        ?: throw AgentFailure("No place for ${block.registryPath}")
 
     if (target.standPos != player.blockPosition()) {
         walkTo(target.standPos, 0.75)
@@ -128,7 +129,7 @@ private suspend fun AgentRuntime.placeWorkstation(
 
     if (!InventoryUtil.ensureInHotbar(item)) throw AgentFailure(missingMessage)
     placeBlock(target, block)
-    agent.rememberBlock(memoryId, target.placePos)
+    agent.rememberBlock(memoryBlock, target.placePos)
     return target.placePos
 }
 
@@ -209,7 +210,7 @@ private suspend fun placeBlock(target: PlacementTarget, block: Block) {
         if (level.getBlockState(target.placePos).`is`(block)) return
     }
 
-    throw AgentFailure("Could not place ${BuiltInRegistries.BLOCK.getKey(block).path}")
+    throw AgentFailure("Could not place ${block.registryPath}")
 }
 
 private suspend fun AgentRuntime.openCraftingTable(pos: BlockPos) {
@@ -249,12 +250,12 @@ private suspend fun AgentRuntime.openFurnace(pos: BlockPos) {
 }
 
 private suspend fun AgentRuntime.findOrPlaceFurnace(): BlockPos {
-    val existing = agent.findRememberedBlock("furnace") ?: ScanUtil.findNearestByType(radius = ConfigData.craftTableScanRadius, blockType = Blocks.FURNACE)?.pos
+    val existing = agent.findRememberedBlock(Blocks.FURNACE) ?: ScanUtil.findNearestByType(radius = ConfigData.craftTableScanRadius, blockType = Blocks.FURNACE)?.pos
     if (existing != null) return existing
     return placeWorkstation(
         item = Items.FURNACE,
         block = Blocks.FURNACE,
-        memoryId = "furnace",
+        memoryBlock = Blocks.FURNACE,
         missingMessage = "No furnace in inventory"
     )
 }

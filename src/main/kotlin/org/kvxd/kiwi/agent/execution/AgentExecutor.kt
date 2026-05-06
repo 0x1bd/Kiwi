@@ -77,7 +77,7 @@ class AgentExecutor(
                 runtime.popCompletedGoals()
             }
             is PlanningEngine.PlanDecision.MineBlock -> executeRecoverable(decision, activeGoal) {
-                val blockInfo = BlockInfo(decision.blockId, dropId = decision.dropId)
+                val blockInfo = BlockInfo(decision.block, dropId = decision.dropId)
                 runtime.mineBlock(blockInfo, decision.targetPos)
                 runtime.agent.context.minedPositions.add(decision.targetPos)
                 runtime.agent.context.minedItemIds.add(decision.dropId)
@@ -161,7 +161,7 @@ class AgentExecutor(
 
         when (decision) {
             is PlanningEngine.PlanDecision.MineBlock -> {
-                runtime.markFailedBlock(decision.blockId, decision.targetPos)
+                runtime.markFailedBlock(decision.block, decision.targetPos)
                 DebugState.log("Mining failed at ${decision.targetPos}: ${error.message}")
             }
             is PlanningEngine.PlanDecision.CraftItem -> {

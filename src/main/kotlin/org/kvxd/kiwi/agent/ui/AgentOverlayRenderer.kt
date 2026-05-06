@@ -32,8 +32,8 @@ object AgentOverlayRenderer {
         ) { context, _ ->
             if (!ConfigData.renderAgentOverlay) return@addLast
 
-            val runtime = Agent.runtime ?: return@addLast
-            val lines = buildLines(runtime)
+            val runtime = Agent.runtime
+            val lines = if (runtime != null) buildLines(runtime) else buildMovementLines()
             if (lines.isEmpty()) return@addLast
 
             val screenW = scaledRes.guiScaledWidth
@@ -62,6 +62,31 @@ object AgentOverlayRenderer {
     }
 
     private data class OverlayLine(val value: String, val color: Long, val indent: Int)
+
+    private fun buildMovementLines(): List<OverlayLine> {
+        if (!Agent.active) return emptyList()
+
+        val lines = mutableListOf<OverlayLine>()
+        lines.add(OverlayLine("[active] ${DebugState.agentObjective}", 0xFFAAFFAA, 0))
+        lines.add(OverlayLine("     Phase: ${DebugState.agentPhase.ifBlank { Agent.phase }}", 0xFFCCCCCC, 0))
+
+        if (DebugState.pathLastAction.isNotBlank()) {
+            lines.add(OverlayLine("     Path: ${DebugState.pathLastAction}", 0xFFCCCC88, 0))
+        }
+        if (DebugState.pathSize > 0) {
+            lines.add(OverlayLine("     Nodes: ${DebugState.pathIndex}/${DebugState.pathSize}", 0xFF888888, 0))
+        }
+
+        if (ConfigData.debugMode) {
+            lines.add(OverlayLine("", 0, 0))
+            lines.add(OverlayLine("--- Debug ------------------", 0xFF666666, 0))
+            lines.add(OverlayLine("Calculating: ${DebugState.pathCalculating}", 0xFF888888, 0))
+            lines.add(OverlayLine("Remaining: ${DebugState.pathRemaining}", 0xFF888888, 0))
+            lines.add(OverlayLine("Stuck ticks: ${DebugState.pathStuckTicks}", 0xFF888888, 0))
+        }
+
+        return lines
+    }
 
     private fun buildLines(runtime: AgentRuntime): List<OverlayLine> {
         val lines = mutableListOf<OverlayLine>()

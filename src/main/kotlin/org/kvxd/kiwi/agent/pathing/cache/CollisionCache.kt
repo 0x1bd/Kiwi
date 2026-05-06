@@ -33,6 +33,7 @@ object CollisionCache {
     const val LAVA: Byte = 3
     const val DANGER: Byte = 4
     const val UNSTABLE: Byte = 5
+    const val UNKNOWN: Byte = 6
 
     private val cache = ThreadLocal.withInitial {
         Long2ByteOpenHashMap(8192).apply { defaultReturnValue(UNCACHED) }
@@ -95,6 +96,16 @@ object CollisionCache {
         if (cached != UNCACHED) return cached
 
         val pos = BlockPos(x, y, z)
+        if (!level.isInWorldBounds(pos)) {
+            map.put(key, UNKNOWN)
+            return UNKNOWN
+        }
+
+        if (!level.isLoaded(pos)) {
+            map.put(key, UNKNOWN)
+            return UNKNOWN
+        }
+
         val state = level.getBlockState(pos)
         val computed = computeState(state, pos)
 

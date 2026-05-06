@@ -2,11 +2,13 @@ package org.kvxd.kiwi.agent
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
-import org.kvxd.kiwi.harvest.BlockHarvestInfo
+import net.minecraft.world.item.Item
+import net.minecraft.world.level.block.Block
 import org.kvxd.kiwi.harvest.HarvestDatabase
 import org.kvxd.kiwi.recipe.ParsedRecipe
 import org.kvxd.kiwi.recipe.RecipeDatabase
 import org.kvxd.kiwi.recipe.TagResolver
+import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.ClientMessenger
 import org.slf4j.LoggerFactory
 
@@ -66,7 +68,7 @@ object RecipeLookup {
     private var _craftingRecipes: List<Recipe> = emptyList()
     private var _cookingRecipes: List<Recipe> = emptyList()
     private var _recipesByResult: Map<String, List<Recipe>> = emptyMap()
-    private var _harvestByBlock: Map<String, BlockHarvest> = emptyMap()
+    private var _harvestByBlock: Map<Block, BlockHarvest> = emptyMap()
     private var _harvestByDrop: Map<String, BlockHarvest> = emptyMap()
     private var _harvestSourcesByDrop: Map<String, List<BlockHarvest>> = emptyMap()
 
@@ -88,7 +90,7 @@ object RecipeLookup {
             return _recipesByResult
         }
 
-    val harvestByBlock: Map<String, BlockHarvest>
+    val harvestByBlock: Map<Block, BlockHarvest>
         get() {
             ensureLoaded()
             return _harvestByBlock
@@ -104,7 +106,13 @@ object RecipeLookup {
 
     fun getHarvestFor(blockId: String): BlockHarvest? {
         ensureLoaded()
-        return _harvestByBlock[blockId.removePrefix("minecraft:")] ?: _harvestByBlock[blockId]
+        val block = findBlock(blockId) ?: return null
+        return _harvestByBlock[block]
+    }
+
+    fun getHarvestFor(block: Block): BlockHarvest? {
+        ensureLoaded()
+        return _harvestByBlock[block]
     }
 
     fun getHarvestByDrop(dropId: String): BlockHarvest? {
@@ -118,9 +126,9 @@ object RecipeLookup {
         return _harvestSourcesByDrop[key].orEmpty()
     }
 
-    fun findBlockAlternatives(dropId: String): List<String> {
+    fun findBlockAlternatives(dropId: String): List<Block> {
         val sources = getHarvestSourcesForDrop(dropId)
-        if (sources.isNotEmpty()) return sources.map { it.blockId }.distinct()
+        if (sources.isNotEmpty()) return sources.map { it.block }.distinct()
         return HarvestDatabase.findBlockAlternatives(dropId)
     }
 
@@ -233,25 +241,24 @@ object RecipeLookup {
     }
 
     private fun buildHarvestMaps() {
-        val harvests = mutableMapOf<String, BlockHarvest>()
+        val harvests = mutableMapOf<Block, BlockHarvest>()
         val sourcesByDrop = mutableMapOf<String, MutableList<BlockHarvest>>()
 
         for (info in HarvestDatabase.allBlocks) {
-            val block = findBlock(info.blockId) ?: continue
+            val block = info.block
             val drop = findItem(info.primaryDropId) ?: continue
             val tool = info.bestToolItemId()?.let { findItem(it) }
 
             val bh = BlockHarvest(
-                block = { block },
-                drops = { drop },
+                block = block,
+                drops = drop,
                 dropCount = info.dropCount,
-                preferredTool = { tool },
-                blockId = info.blockId,
+                preferredTool = tool,
                 dropId = info.primaryDropId
             )
 
-            if (info.blockId !in harvests) {
-                harvests[info.blockId] = bh
+            if (block !in harvests) {
+                harvests[block] = bh
             }
 
             sourcesByDrop.getOrPut(info.primaryDropId) { mutableListOf() }.add(bh)
@@ -302,12 +309,13 @@ object RecipeLookup {
 }
 
 data class BlockHarvest(
-    val block: () -> net.minecraft.world.level.block.Block,
-    val drops: () -> net.minecraft.world.item.Item,
+    val block: Block,
+    val drops: Item,
     val dropCount: IntRange,
-    val preferredTool: () -> net.minecraft.world.item.Item?,
-    val blockId: String,
+    val preferredTool: Item?,
     val dropId: String
 ) {
+    val blockId: String get() = block.registryPath
+
     val isSelfDrop: Boolean get() = blockId == dropId
 }
