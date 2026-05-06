@@ -44,12 +44,24 @@ jobs:
         java-version: '25'
         distribution: 'temurin'
 
+    - name: Set up Gradle
+      if: matrix.build-mode == 'manual'
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Cache Loom files
+      if: matrix.build-mode == 'manual'
+      uses: actions/cache@v4
+      with:
+        path: .gradle/loom-cache
+        key: loom-${{ hashFiles('gradle.properties', 'build.gradle.kts') }}
+        restore-keys: loom-
+
     - name: Run manual build steps
       if: matrix.build-mode == 'manual'
       shell: bash
       run: |
         chmod +x gradlew
-        ./gradlew build
+        ./gradlew assemble --build-cache
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
