@@ -3,7 +3,7 @@ package org.kvxd.kiwi.config
 import org.kvxd.kiwi.config.entries.boolean
 import org.kvxd.kiwi.config.entries.double
 import org.kvxd.kiwi.config.entries.int
-import org.kvxd.kiwi.config.entries.string
+import org.kvxd.kiwi.config.entries.stringList
 import org.kvxd.kiwi.util.resolveBlockId
 
 object ConfigData {
@@ -68,26 +68,26 @@ object ConfigData {
         true
     )
 
-    var allowedBuildBlocks by string(
+    var allowedBuildBlocks by stringList(
         "allowedBuildBlocks",
-        "Comma-separated block IDs allowed for building/pillaring",
-        "dirt,cobblestone,netherrack,andesite,diorite,granite,deepslate,cobbled_deepslate,tuff,stone"
+        "Block IDs allowed for building/pillaring",
+        listOf("dirt", "cobblestone", "netherrack", "andesite", "diorite", "granite", "deepslate", "cobbled_deepslate", "tuff", "stone")
     )
 
     val allowedBuildBlockIds: Set<String>
-        get() = allowedBuildBlocks.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        get() = allowedBuildBlocks.toSet()
 
     val allowedBuildBlockTypes
         get() = allowedBuildBlockIds.mapNotNull { resolveBlockId(it) }.toSet()
 
-    var safeToMineBlocks by string(
+    var safeToMineBlocks by stringList(
         "safeToMineBlocks",
-        "Comma-separated block IDs that are safe to mine when they block the way",
-        "oak_leaves,spruce_leaves,birch_leaves,jungle_leaves,acacia_leaves,dark_oak_leaves,pale_oak_leaves,mangrove_leaves,cherry_leaves,azalea_leaves,flowering_azalea_leaves,tall_grass,fern,dead_bush,vine,glow_lichen"
+        "Block IDs that are safe to mine when they block the way",
+        listOf("oak_leaves", "spruce_leaves", "birch_leaves", "jungle_leaves", "acacia_leaves", "dark_oak_leaves", "pale_oak_leaves", "mangrove_leaves", "cherry_leaves", "azalea_leaves", "flowering_azalea_leaves", "tall_grass", "fern", "dead_bush", "vine", "glow_lichen")
     )
 
     val safeToMineBlockIds: Set<String>
-        get() = safeToMineBlocks.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        get() = safeToMineBlocks.toSet()
 
     val safeToMineBlockTypes
         get() = safeToMineBlockIds.mapNotNull { resolveBlockId(it) }.toSet()

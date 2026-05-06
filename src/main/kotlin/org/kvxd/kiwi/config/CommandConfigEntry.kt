@@ -11,4 +11,7 @@ interface CommandConfigEntry<T> {
 
     fun buildGetNode(): LiteralArgumentBuilder<FabricClientCommandSource>
     fun buildSetNode(): LiteralArgumentBuilder<FabricClientCommandSource>
+    fun buildAddNode(): LiteralArgumentBuilder<FabricClientCommandSource>? = null
+    fun buildRemoveNode(): LiteralArgumentBuilder<FabricClientCommandSource>? = null
+    fun buildClearNode(): LiteralArgumentBuilder<FabricClientCommandSource>? = null
 }

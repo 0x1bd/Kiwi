@@ -14,6 +14,12 @@ abstract class ConfigEntry<T>(
 ) : ReadWriteProperty<Any, T>, CommandConfigEntry<T> {
 
     protected var value: T = default
+    protected open val displayValue: String
+        get() = value.toString()
+    protected open val defaultDisplayValue: String
+        get() = default.toString()
+    protected open val defaultCommandValue: String
+        get() = default.toString()
 
     override fun getValue(thisRef: Any, property: KProperty<*>): T = value
     override fun setValue(thisRef: Any, property: KProperty<*>, value: T) {
@@ -26,7 +32,7 @@ abstract class ConfigEntry<T>(
         val nameText = Component.literal(key)
             .withStyle(ChatFormatting.AQUA)
 
-        val valueText = Component.literal(" = $value")
+        val valueText = Component.literal(" = $displayValue")
             .withStyle(ChatFormatting.GREEN)
 
         val descText = Component.literal("  (${description})")
@@ -35,8 +41,8 @@ abstract class ConfigEntry<T>(
         val resetText = Component.literal("[reset]")
             .withStyle(ChatFormatting.RED)
             .withStyle {
-                it.withClickEvent(ClickEvent.SuggestCommand("/kiwi config set $key $default"))
-                    .withHoverEvent(HoverEvent.ShowText(Component.literal("Reset to default: $default")))
+                it.withClickEvent(ClickEvent.SuggestCommand("/kiwi config set $key $defaultCommandValue"))
+                    .withHoverEvent(HoverEvent.ShowText(Component.literal("Reset to default: $defaultDisplayValue")))
             }
 
         return Component.empty()

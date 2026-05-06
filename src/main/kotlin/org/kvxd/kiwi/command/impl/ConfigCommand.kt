@@ -38,14 +38,35 @@ object ConfigCommand : AbstractCommand("config") {
 
         val setNode = literal("set")
         val getNode = literal("get")
+        val addNode = literal("add")
+        val removeNode = literal("remove")
+        val clearNode = literal("clear")
+        var hasAddNode = false
+        var hasRemoveNode = false
+        var hasClearNode = false
 
         for ((_, entry) in ConfigRegistry.getEntries()) {
             setNode.then(entry.buildSetNode())
             getNode.then(entry.buildGetNode())
+            entry.buildAddNode()?.let {
+                addNode.then(it)
+                hasAddNode = true
+            }
+            entry.buildRemoveNode()?.let {
+                removeNode.then(it)
+                hasRemoveNode = true
+            }
+            entry.buildClearNode()?.let {
+                clearNode.then(it)
+                hasClearNode = true
+            }
         }
 
         root.then(setNode)
         root.then(getNode)
+        if (hasAddNode) root.then(addNode)
+        if (hasRemoveNode) root.then(removeNode)
+        if (hasClearNode) root.then(clearNode)
 
         return root
     }
