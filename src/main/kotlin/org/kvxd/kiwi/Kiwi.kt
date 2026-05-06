@@ -14,8 +14,6 @@ import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.harvest.HarvestDatabase
 import org.kvxd.kiwi.recipe.RecipeDatabase
 import org.kvxd.kiwi.render.PathRenderer
-import org.kvxd.kiwi.test.HarvestMappingTests
-import org.kvxd.kiwi.test.TestRunner
 import org.slf4j.LoggerFactory
 
 class Kiwi : ClientModInitializer {
@@ -39,8 +37,6 @@ class Kiwi : ClientModInitializer {
         PlanningEngine.initialize()
 
         CommandRegistry.init()
-
-        TestRunner.register(HarvestMappingTests())
 
         AgentOverlayRenderer.init()
         PathRenderer.init()
