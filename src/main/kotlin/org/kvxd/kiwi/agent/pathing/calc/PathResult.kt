@@ -23,10 +23,12 @@ sealed class PathFailureReason {
     data object OutsideLoadedChunks : PathFailureReason()
     data class MissingCapability(val capabilities: Set<MovementCapability>) : PathFailureReason()
     data object NoLegalMoves : PathFailureReason()
+    data object SearchLimit : PathFailureReason()
 
     fun describe(): String = when (this) {
         OutsideLoadedChunks -> "target is outside loaded chunks"
         is MissingCapability -> "required capability disabled or missing: ${capabilities.joinToString { it.label }}"
         NoLegalMoves -> "no legal movement sequence found"
+        SearchLimit -> "path search limit reached"
     }
 }

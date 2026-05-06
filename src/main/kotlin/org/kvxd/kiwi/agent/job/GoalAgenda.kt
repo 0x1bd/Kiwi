@@ -19,7 +19,7 @@ class GoalAgenda(
         get() = stack
 
     val topLabel: String
-        get() = stack.lastOrNull()?.itemId.orEmpty()
+        get() = stack.lastOrNull()?.label.orEmpty()
 
     fun seed(request: AgentRequest) {
         stack.clear()
@@ -35,11 +35,17 @@ class GoalAgenda(
     }
 
     fun push(itemId: String, amount: Int, reason: String): PushResult {
-        if (amount <= 0) return PushResult.INVALID
-        if (isBlocked(itemId)) return PushResult.BLOCKED
+        return push(itemId, setOf(itemId), amount, reason)
+    }
 
-        val targetCount = inventoryCount(itemId) + amount
-        val existingIndex = stack.indexOfFirst { it.itemId == itemId }
+    fun push(itemId: String, acceptedItemIds: Set<String>, amount: Int, reason: String, displayName: String? = null): PushResult {
+        if (amount <= 0) return PushResult.INVALID
+        val accepted = acceptedItemIds.filterTo(linkedSetOf()) { it.isNotBlank() }
+        if (accepted.isEmpty()) return PushResult.INVALID
+        if (accepted.all { isBlocked(it) }) return PushResult.BLOCKED
+
+        val targetCount = accepted.sumOf(inventoryCount) + amount
+        val existingIndex = stack.indexOfFirst { it.acceptedItemIds == accepted }
         if (existingIndex != -1) {
             val existing = stack[existingIndex]
             if (targetCount > existing.targetCount) {
@@ -59,7 +65,9 @@ class GoalAgenda(
                 itemId = itemId,
                 amount = amount,
                 targetCount = targetCount,
-                reason = reason
+                reason = reason,
+                acceptedItemIds = accepted,
+                displayName = displayName
             )
         )
         onChanged()
@@ -77,7 +85,7 @@ class GoalAgenda(
         var changed = false
         while (stack.isNotEmpty()) {
             val top = stack.last()
-            if (inventoryCount(top.itemId) < top.targetCount) break
+            if (top.acceptedItemIds.sumOf(inventoryCount) < top.targetCount) break
             stack.removeAt(stack.lastIndex)
             changed = true
         }
@@ -86,7 +94,7 @@ class GoalAgenda(
 
     fun top(): GoalFrame? = stack.lastOrNull()
 
-    fun remainingFor(goal: GoalFrame): Int = goal.remaining(inventoryCount(goal.itemId))
+    fun remainingFor(goal: GoalFrame): Int = goal.remaining(goal.acceptedItemIds.sumOf(inventoryCount))
 
     fun targetCountFor(goal: GoalFrame): Int = goal.targetCount
 }

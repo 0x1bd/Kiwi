@@ -8,15 +8,44 @@ data class Node(
     var parent: Node?,
     var costG: Double,
     var costH: Double,
-    var type: MovementType,
-    var miningBlocks: List<BlockPos> = emptyList(),
-    var miningCost: Double = 0.0,
+    var action: MovementAction,
     var heapIndex: Int = -1
 ) : Comparable<Node> {
+
+    constructor(
+        pos: BlockPos,
+        parent: Node?,
+        costG: Double,
+        costH: Double,
+        type: MovementType,
+        miningBlocks: List<BlockPos> = emptyList(),
+        miningCost: Double = 0.0,
+        heapIndex: Int = -1
+    ) : this(
+        pos = pos,
+        parent = parent,
+        costG = costG,
+        costH = costH,
+        action = PlannedMovementAction(type, pos, miningBlocks, miningCost),
+        heapIndex = heapIndex
+    )
 
     val costF: Double get() = costG + costH
 
     val posLong: Long = pos.asLong()
+    val stateKey: NodeStateKey get() = NodeStateKey(posLong, type)
+
+    var type: MovementType
+        get() = action.type
+        set(value) {
+            action = action.withType(value)
+        }
+
+    val miningBlocks: List<BlockPos>
+        get() = action.miningBlocks
+
+    val miningCost: Double
+        get() = action.miningCost
 
     override fun compareTo(other: Node): Int {
         return costF.compareTo(other.costF)
@@ -28,10 +57,15 @@ data class Node(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as Node
-        return posLong == other.posLong
+        return stateKey == other.stateKey
     }
 
     override fun hashCode(): Int {
-        return posLong.hashCode()
+        return stateKey.hashCode()
     }
 }
+
+data class NodeStateKey(
+    val posLong: Long,
+    val type: MovementType
+)

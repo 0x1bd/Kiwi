@@ -105,7 +105,7 @@ object AgentOverlayRenderer {
                 val branch = if (index == runtime.goals.size - 1) "`-" else "|-"
                 val symbol = if (index == runtime.goals.size - 1) ">" else "-"
                 val color = if (index == runtime.goals.size - 1) 0xFFFFFF55L else 0xFF888888L
-                val desc = "Need ${goal.itemId} x${runtime.remainingFor(goal)}"
+                val desc = "Need ${goal.label} x${runtime.remainingFor(goal)}"
                 val displayDesc = if (desc.length > maxDescChars) desc.take(maxDescChars - 2) + ".." else desc
                 lines.add(OverlayLine("$branch [$symbol] $displayDesc", color, INDENT))
             }

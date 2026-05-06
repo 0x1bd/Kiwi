@@ -1,6 +1,5 @@
 package org.kvxd.kiwi.agent.execution
 
-import kotlinx.coroutines.delay
 import org.kvxd.kiwi.agent.job.GoalAgenda
 import org.kvxd.kiwi.agent.job.GoalFrame
 import org.kvxd.kiwi.agent.planning.PlanningEngine
@@ -15,6 +14,7 @@ import org.kvxd.kiwi.agent.runtime.actions.smeltItem
 import org.kvxd.kiwi.agent.ui.DebugState
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.player
+import org.kvxd.kiwi.util.coroutine.waitClientTicks
 
 class AgentExecutor(
     private val runtime: AgentRuntime
@@ -50,7 +50,7 @@ class AgentExecutor(
         runtime.phase = AgentPhase.DONE
     }
 
-    private fun chooseDecision(activeGoal: GoalFrame): PlanningEngine.PlanDecision {
+    private suspend fun chooseDecision(activeGoal: GoalFrame): PlanningEngine.PlanDecision {
         return PlanningEngine.nextStep(
             PlanningEngine.PlanRequest(
                 root = runtime.request,
@@ -62,6 +62,7 @@ class AgentExecutor(
                 playerPos = player.blockPosition(),
                 environment = PlanningEngine.EnvironmentQuery(
                     findNearestDrop = runtime::findNearestDrop,
+                    findNearestDropAny = runtime::findNearestDrop,
                     findNearestBlock = runtime::findNearestBlock,
                     findClosestBlock = runtime::findClosestBlock
                 )
@@ -73,7 +74,7 @@ class AgentExecutor(
         when (decision) {
             is PlanningEngine.PlanDecision.AcquireItem -> pushGoal(decision)
             is PlanningEngine.PlanDecision.CollectDrop -> executeRecoverable(decision, activeGoal) {
-                runtime.collectItems(decision.itemId, amount = runtime.targetCountFor(activeGoal))
+                runtime.collectItems(decision.acceptedItemIds, amount = runtime.targetCountFor(activeGoal))
                 runtime.popCompletedGoals()
             }
             is PlanningEngine.PlanDecision.MineBlock -> executeRecoverable(decision, activeGoal) {
@@ -81,6 +82,7 @@ class AgentExecutor(
                 runtime.mineBlock(blockInfo, decision.targetPos)
                 runtime.agent.context.minedPositions.add(decision.targetPos)
                 runtime.agent.context.minedItemIds.add(decision.dropId)
+                collectFreshDrops(activeGoal)
                 runtime.popCompletedGoals()
             }
             is PlanningEngine.PlanDecision.CraftItem -> executeRecoverable(decision, activeGoal) {
@@ -97,16 +99,16 @@ class AgentExecutor(
     }
 
     private suspend fun pushGoal(decision: PlanningEngine.PlanDecision.AcquireItem) {
-        when (runtime.pushGoal(decision.itemId, decision.amount, decision.reason)) {
+        when (runtime.pushGoal(decision.itemId, decision.acceptedItemIds, decision.amount, decision.reason, decision.displayName)) {
             GoalAgenda.PushResult.PUSHED,
             GoalAgenda.PushResult.EXTENDED -> return
             GoalAgenda.PushResult.DUPLICATE -> {
                 runtime.failures++
-                DebugState.log("Duplicate goal skipped: ${decision.itemId}")
+                DebugState.log("Duplicate goal skipped: ${decision.acceptedItemIds.joinToString("|")}")
             }
             GoalAgenda.PushResult.BLOCKED -> {
                 runtime.failures++
-                DebugState.log("Blocked goal skipped: ${decision.itemId}")
+                DebugState.log("Blocked goal skipped: ${decision.acceptedItemIds.joinToString("|")}")
             }
             GoalAgenda.PushResult.INVALID -> {
                 runtime.failures++
@@ -118,14 +120,24 @@ class AgentExecutor(
         if (runtime.failures > ConfigData.agentMaxFailures) {
             throw AgentFailure("Too many planner dead ends while acquiring ${decision.itemId}")
         }
-        delay(50)
+        waitClientTicks(1)
+    }
+
+    private suspend fun collectFreshDrops(activeGoal: GoalFrame) {
+        if (runtime.remainingFor(activeGoal) <= 0) return
+
+        try {
+            runtime.collectItems(activeGoal.acceptedItemIds, amount = runtime.targetCountFor(activeGoal))
+        } catch (e: AgentFailure) {
+            DebugState.log("Post-mine pickup deferred for ${activeGoal.label}: ${e.message}")
+        }
     }
 
     private suspend fun handleNoPlan(decision: PlanningEngine.PlanDecision.NoPlan, activeGoal: GoalFrame) {
         runtime.failures++
         runtime.phase = AgentPhase.RECOVERING
         runtime.updateDebug()
-        DebugState.log("No plan for ${activeGoal.itemId}: ${decision.reason}")
+        DebugState.log("No plan for ${activeGoal.label}: ${decision.reason}")
 
         if (activeGoal.itemId == runtime.request.itemId && runtime.goals.size == 1) {
             throw AgentFailure("No available plan for ${activeGoal.itemId}")
@@ -134,7 +146,7 @@ class AgentExecutor(
         runtime.agent.context.blockedCraftItems.add(activeGoal.itemId)
         runtime.agent.context.blockedMineItems.add(activeGoal.itemId)
         runtime.popGoal()
-        delay(50)
+        waitClientTicks(1)
     }
 
     private suspend fun executeRecoverable(
@@ -185,13 +197,13 @@ class AgentExecutor(
         if (runtime.remainingFor(activeGoal) <= 0) {
             runtime.popCompletedGoals()
         }
-        delay(50)
+        waitClientTicks(1)
     }
 
     private fun PlanningEngine.PlanDecision.describe(): String = when (this) {
-        is PlanningEngine.PlanDecision.AcquireItem -> "Acquire $itemId: $reason"
-        is PlanningEngine.PlanDecision.CollectDrop -> "Collect $itemId"
-        is PlanningEngine.PlanDecision.MineBlock -> "Mine $blockId for $dropId"
+        is PlanningEngine.PlanDecision.AcquireItem -> "Acquire ${displayName ?: acceptedItemIds.joinToString("|")}: $reason"
+        is PlanningEngine.PlanDecision.CollectDrop -> "Collect ${acceptedItemIds.joinToString("|")}"
+        is PlanningEngine.PlanDecision.MineBlock -> "Mine $blockId for ${acceptedItemIds.joinToString("|")}"
         is PlanningEngine.PlanDecision.CraftItem -> "Craft $itemId"
         is PlanningEngine.PlanDecision.SmeltItem -> "Smelt $itemId"
         is PlanningEngine.PlanDecision.NoPlan -> "No plan: $reason"

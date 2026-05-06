@@ -9,9 +9,6 @@ import org.kvxd.kiwi.util.MiningUtil
 
 object MovementObstructionUtil {
 
-    private const val TIME_PENALTY = 3.0
-    private const val BASE_MINING_COST = 6.0
-
     data class MiningPlan(
         val blocks: List<BlockPos>,
         val cost: Double
@@ -47,7 +44,9 @@ object MovementObstructionUtil {
 
         return MiningPlan(
             blocks = miningBlocks.distinct(),
-            cost = totalTime * TIME_PENALTY + BASE_MINING_COST
+            cost = MovementCosts.MINING_BASE +
+                totalTime * MovementCosts.MINING_TIME_MULTIPLIER +
+                miningBlocks.distinct().size * MovementCosts.MINING_PER_BLOCK
         )
     }
 

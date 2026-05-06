@@ -9,8 +9,8 @@ import org.kvxd.kiwi.agent.pathing.goal.goals.GoalNear
 import org.kvxd.kiwi.agent.runtime.AgentPhase
 import org.kvxd.kiwi.agent.runtime.AgentRuntime
 import org.kvxd.kiwi.agent.runtime.AgentFailure
+import org.kvxd.kiwi.util.coroutine.waitClient
 import org.kvxd.kiwi.util.math.RotationUtils
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 suspend fun AgentRuntime.walkTo(pos: BlockPos, reach: Double = 1.5) {
@@ -27,5 +27,5 @@ suspend fun AgentRuntime.walkTo(pos: BlockPos, reach: Double = 1.5) {
 suspend fun AgentRuntime.lookAtBlock(pos: BlockPos) {
     val rots = RotationUtils.getLookRotations(Vec3.atCenterOf(pos))
     RotationManager.setTarget(rots.x, rots.y)
-    delay(50.milliseconds)
+    waitClient(50.milliseconds)
 }

@@ -10,11 +10,10 @@ import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
 import org.kvxd.kiwi.agent.pathing.calc.PathSearchDiagnostics
 import org.kvxd.kiwi.agent.pathing.move.AbstractMovement
+import org.kvxd.kiwi.agent.pathing.move.MovementCosts
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil
 
 object DropMovement : AbstractMovement(MovementType.DROP) {
-
-    private const val BASE_COST = 1.5
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         val start = current.pos
@@ -36,7 +35,7 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
                     if (MovementCapabilities.require(MovementCapability.WATER_TRAVERSAL)) {
                         val miningPlan = MovementObstructionUtil.planMining(dropBlocksToBreak)
                         if (miningPlan != null) {
-                            val cost = BASE_COST + (i * 0.2)
+                            val cost = MovementCosts.DROP_BASE + (i * MovementCosts.WATER_DROP_PER_BLOCK)
                             output.append(currentDropPos, current, target, cost, miningPlan = miningPlan)
                         }
                     } else {
@@ -49,7 +48,7 @@ object DropMovement : AbstractMovement(MovementType.DROP) {
                     if (i <= ConfigData.maxFallHeight) {
                         val miningPlan = MovementObstructionUtil.planMining(dropBlocksToBreak)
                         if (miningPlan != null) {
-                            val cost = BASE_COST + (i * 0.5)
+                            val cost = MovementCosts.DROP_BASE + (i * MovementCosts.DROP_PER_BLOCK)
                             output.append(currentDropPos, current, target, cost, miningPlan = miningPlan)
                         }
                     }

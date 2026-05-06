@@ -17,6 +17,7 @@ object MovementController {
 
     fun stop() {
         InputOverride.clearMovement()
+        player.isSprinting = false
     }
 
     fun alignToBlockCenter(block: BlockPos): Boolean {

@@ -24,8 +24,8 @@ data class ParsedIngredient(
 
     val displayName: String
         get() = when (kind) {
-            IngredientKind.ITEM -> name.substringAfterLast("/")
-            IngredientKind.TAG -> name.substringAfterLast("/")
+            IngredientKind.ITEM -> name.substringAfterLast("/").substringAfterLast(":")
+            IngredientKind.TAG -> name.substringAfterLast("/").substringAfterLast(":")
         }
 }
 

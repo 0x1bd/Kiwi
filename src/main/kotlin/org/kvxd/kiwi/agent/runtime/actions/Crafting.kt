@@ -30,9 +30,9 @@ import org.kvxd.kiwi.isCrosshairOnBlock
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.InventoryUtil
+import org.kvxd.kiwi.util.coroutine.waitClient
 import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.math.RotationUtils
-import kotlinx.coroutines.delay
 import net.minecraft.world.inventory.ContainerInput
 import kotlin.math.abs
 import kotlin.math.max
@@ -49,7 +49,7 @@ suspend fun AgentRuntime.craftItem(recipe: Recipe) {
         openCraftingTable(tablePos)
     } else {
         client.setScreen(InventoryScreen(player))
-        delay(100.milliseconds)
+        waitClient(100.milliseconds)
     }
 
     waitForRightScreen(needTable)
@@ -84,13 +84,13 @@ suspend fun AgentRuntime.smeltItem(recipe: Recipe) {
 
     var ticks = 0
     while (!menu.getSlot(2).hasItem() && ticks < 200) {
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         ticks++
     }
     if (ticks >= 200) throw AgentFailure("Smelting timed out")
 
     gameMode.handleContainerInput(menu.containerId, 2, 0, ContainerInput.QUICK_MOVE, player)
-    delay(250.milliseconds)
+    waitClient(250.milliseconds)
     closeScreen()
 }
 
@@ -194,7 +194,7 @@ private suspend fun placeBlock(target: PlacementTarget, block: Block) {
 
     var aimTicks = 0
     while (!RotationUtils.isLookingAt(target.hitVec, 0.6) && aimTicks < 12) {
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         aimTicks++
     }
 
@@ -205,7 +205,7 @@ private suspend fun placeBlock(target: PlacementTarget, block: Block) {
             player.swing(InteractionHand.MAIN_HAND)
         }
 
-        delay(100.milliseconds)
+        waitClient(100.milliseconds)
         CollisionCache.invalidate(target.placePos)
         if (level.getBlockState(target.placePos).`is`(block)) return
     }
@@ -221,7 +221,7 @@ private suspend fun AgentRuntime.openCraftingTable(pos: BlockPos) {
         InputOverride.update {
             use = isCrosshairOnBlock(pos) && canInteractWithBlock(pos)
         }
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         if (client.screen is CraftingScreen) {
             InputOverride.update { use = false }
             opened = true
@@ -239,7 +239,7 @@ private suspend fun AgentRuntime.openFurnace(pos: BlockPos) {
         InputOverride.update {
             use = isCrosshairOnBlock(pos)
         }
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         if (client.screen is FurnaceScreen) {
             InputOverride.update { use = false }
             opened = true
@@ -265,7 +265,7 @@ private suspend fun AgentRuntime.waitForRightScreen(needsTable: Boolean) {
     while (ticks < 50) {
         val menu = player.containerMenu
         if ((!needsTable && menu is InventoryMenu) || (needsTable && menu is CraftingMenu)) return
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         ticks++
     }
     throw AgentFailure("Crafting GUI did not open in time")
@@ -275,7 +275,7 @@ private suspend inline fun <reified T> waitForScreen() {
     var ticks = 0
     while (ticks < 60) {
         if (player.containerMenu is T) return
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         ticks++
     }
     throw AgentFailure("Screen did not open")
@@ -311,20 +311,20 @@ private suspend fun AgentRuntime.placeCraftingIngredients(recipe: Recipe) {
         if (invSlot == -1) throw AgentFailure("Missing ${ingredient.displayName} for crafting")
 
         gameMode.handleContainerInput(menu.containerId, invSlot, 0, ContainerInput.PICKUP, player)
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
 
         gameMode.handleContainerInput(menu.containerId, gridSlot, 1, ContainerInput.PICKUP, player)
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
 
         gameMode.handleContainerInput(menu.containerId, invSlot, 0, ContainerInput.PICKUP, player)
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
     }
 
     if (!menu.carried.isEmpty) {
         val emptySlot = findEmptySlot(menu, invRange(recipe.source))
         if (emptySlot != -1) {
             gameMode.handleContainerInput(menu.containerId, emptySlot, 0, ContainerInput.PICKUP, player)
-            delay(50.milliseconds)
+            waitClient(50.milliseconds)
         }
     }
 }
@@ -355,7 +355,7 @@ private fun findInvSlot(menu: net.minecraft.world.inventory.AbstractContainerMen
 private suspend fun AgentRuntime.waitForResult() {
     var ticks = 0
     while (!player.containerMenu.getSlot(0).hasItem() && ticks < 40) {
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         ticks++
     }
     if (ticks >= 40) throw AgentFailure("Crafting did not produce result")
@@ -364,12 +364,12 @@ private suspend fun AgentRuntime.waitForResult() {
 private suspend fun AgentRuntime.quickMoveResult() {
     val menu = player.containerMenu
     client.gameMode?.handleContainerInput(menu.containerId, 0, 0, ContainerInput.QUICK_MOVE, player)
-    delay(100.milliseconds)
+    waitClient(100.milliseconds)
 }
 
 private suspend fun AgentRuntime.closeScreen() {
     if (client.screen != null) player.closeContainer()
-    delay(100.milliseconds)
+    waitClient(100.milliseconds)
 }
 
 private fun findAdjacent(pos: BlockPos): BlockPos? {

@@ -8,15 +8,10 @@ import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
 import org.kvxd.kiwi.agent.pathing.calc.PathSearchDiagnostics
 import org.kvxd.kiwi.agent.pathing.move.AbstractMovement
+import org.kvxd.kiwi.agent.pathing.move.MovementCosts
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil
 
 object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
-
-    private const val COST_FLAT = 1.0
-    private const val COST_DIAGONAL = 1.414
-    private const val COST_JUMP = 1.2
-    private const val COST_WATER = 1.5
-    private const val COST_WATER_DIAGONAL = 2.12
 
     private val DIAGONAL_OFFSETS = arrayOf(1 to 1, 1 to -1, -1 to 1, -1 to -1)
     private val CARDINAL_OFFSETS = arrayOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
@@ -94,12 +89,12 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
 
             if (isDiagonal && !isSafeDiagonal(start, dx, dz)) return
 
-            val cost = if (isDiagonal) COST_WATER_DIAGONAL else COST_WATER
+            val cost = if (isDiagonal) MovementCosts.WATER_DIAGONAL else MovementCosts.WATER
             output.append(waterNode, current, target, cost, MovementType.WATER_WALK)
             return
         }
 
-        val cost = if (isDiagonal) COST_DIAGONAL else COST_FLAT
+        val cost = if (isDiagonal) MovementCosts.DIAGONAL else MovementCosts.FLAT
 
         if (CollisionCache.isSolid(offset.below())) {
             val blocksToBreak = listOf(offset, offset.above())
@@ -117,7 +112,7 @@ object TravelMovement : AbstractMovement(MovementType.TRAVEL) {
             val miningPlan = MovementObstructionUtil.planMining(blocksToBreak)
 
             if (miningPlan != null && offset !in miningPlan.blocks) {
-                output.append(offset.above(), current, target, COST_JUMP, MovementType.JUMP, miningPlan)
+                output.append(offset.above(), current, target, MovementCosts.STEP_UP, MovementType.JUMP, miningPlan)
             }
         }
     }

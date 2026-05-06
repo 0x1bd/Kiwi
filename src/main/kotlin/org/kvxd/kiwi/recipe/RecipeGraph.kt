@@ -41,14 +41,16 @@ class RecipeGraph {
         available: Map<String, Int>,
         maxDepth: Int = 8
     ): List<ParsedRecipe>? {
-        val target = targetId.removePrefix("minecraft:")
-        if (available[target] ?: 0 > 0) return emptyList()
+        val targetIds = resolveItemChoices(targetId)
+        if (targetIds.any { (available[it] ?: 0) > 0 }) return emptyList()
 
         val visited = mutableSetOf<String>()
         val queue = ArrayDeque<CraftPlanNode>()
 
-        for (recipe in RecipeDatabase.recipesForResult(target)) {
-            queue.add(CraftPlanNode(recipe, emptyList(), available.toMutableMap()))
+        for (target in targetIds) {
+            for (recipe in RecipeDatabase.recipesForResult(target)) {
+                queue.add(CraftPlanNode(recipe, emptyList(), available.toMutableMap()))
+            }
         }
 
         while (queue.isNotEmpty()) {
@@ -65,22 +67,24 @@ class RecipeGraph {
                 return node.path + node.recipe
             }
 
-            for ((ingredient, needed) in missing) {
-                val recipes = RecipeDatabase.recipesForResult(ingredient)
-                if (recipes.isEmpty()) continue
+            for (ingredient in missing) {
+                for (candidateId in ingredient.itemIds) {
+                    val recipes = RecipeDatabase.recipesForResult(candidateId)
+                    if (recipes.isEmpty()) continue
 
-                for (subRecipe in recipes) {
-                    val newInventory = node.simulatedInventory.toMutableMap()
-                    newInventory[subRecipe.resultId.removePrefix("minecraft:")] =
-                        (newInventory[subRecipe.resultId.removePrefix("minecraft:")] ?: 0) + subRecipe.resultCount
+                    for (subRecipe in recipes) {
+                        val newInventory = node.simulatedInventory.toMutableMap()
+                        newInventory[subRecipe.resultId.removePrefix("minecraft:")] =
+                            (newInventory[subRecipe.resultId.removePrefix("minecraft:")] ?: 0) + subRecipe.resultCount
 
-                    queue.add(
-                        CraftPlanNode(
-                            recipe = subRecipe,
-                            path = node.path + node.recipe,
-                            simulatedInventory = newInventory
+                        queue.add(
+                            CraftPlanNode(
+                                recipe = subRecipe,
+                                path = node.path + node.recipe,
+                                simulatedInventory = newInventory
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -100,8 +104,8 @@ class RecipeGraph {
     private fun findMissingIngredients(
         recipe: ParsedRecipe,
         inventory: Map<String, Int>
-    ): Map<String, Int> {
-        val missing = mutableMapOf<String, Int>()
+    ): List<MissingIngredient> {
+        val missing = mutableListOf<MissingIngredient>()
         val tempInv = inventory.toMutableMap()
 
         for (slot in recipe.ingredients) {
@@ -137,16 +141,28 @@ class RecipeGraph {
             }
 
             if (!satisfied) {
-                val firstItem = slot.firstOrNull {
-                    it.kind == IngredientKind.ITEM
-                }?.name?.removePrefix("minecraft:") ?: slot.firstOrNull()
-                    ?.let { it.name.removePrefix("#") } ?: "unknown"
-                missing[firstItem] = (missing[firstItem] ?: 0) + 1
+                val itemIds = slot.flatMap { ingredient ->
+                    when (ingredient.kind) {
+                        IngredientKind.ITEM -> listOf(ingredient.name.removePrefix("minecraft:"))
+                        IngredientKind.TAG -> resolveItemChoices(ingredient.name)
+                    }
+                }.toCollection(linkedSetOf())
+                missing.add(MissingIngredient(itemIds.ifEmpty { setOf("unknown") }))
             }
         }
 
         return missing
     }
+
+    private fun resolveItemChoices(id: String): Set<String> {
+        val resolved = TagResolver.getItems(id)
+        if (resolved.isNotEmpty()) return resolved.mapTo(linkedSetOf()) { it.removePrefix("minecraft:") }
+        return setOf(id.removePrefix("#").removePrefix("minecraft:"))
+    }
+
+    private data class MissingIngredient(
+        val itemIds: Set<String>
+    )
 
     private data class CraftPlanNode(
         val recipe: ParsedRecipe,

@@ -14,6 +14,7 @@ import org.kvxd.kiwi.config.ConfigManager
 import org.kvxd.kiwi.harvest.HarvestDatabase
 import org.kvxd.kiwi.recipe.RecipeDatabase
 import org.kvxd.kiwi.render.PathRenderer
+import org.kvxd.kiwi.util.coroutine.ClientTickDelay
 import org.slf4j.LoggerFactory
 
 class Kiwi : ClientModInitializer {
@@ -50,6 +51,7 @@ class Kiwi : ClientModInitializer {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { _ ->
+            ClientTickDelay.tick()
             RotationManager.tick()
 
             if (!HarvestDatabase.isLoaded && client.level != null) {

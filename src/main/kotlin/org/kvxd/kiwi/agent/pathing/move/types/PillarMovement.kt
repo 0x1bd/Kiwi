@@ -6,12 +6,11 @@ import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
 import org.kvxd.kiwi.agent.pathing.move.AbstractMovement
+import org.kvxd.kiwi.agent.pathing.move.MovementCosts
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil
 import org.kvxd.kiwi.player
 
 object PillarMovement : AbstractMovement(MovementType.PILLAR) {
-
-    private const val COST = 6.0
 
     override fun getNeighbors(current: Node, target: BlockPos, output: MutableList<Node>) {
         if (!ConfigData.allowPillar) return
@@ -31,7 +30,7 @@ object PillarMovement : AbstractMovement(MovementType.PILLAR) {
         val miningPlan = MovementObstructionUtil.planMining(blocksToBreak)
 
         if (miningPlan != null) {
-            output.append(dest, current, target, COST, miningPlan = miningPlan)
+            output.append(dest, current, target, MovementCosts.PILLAR, miningPlan = miningPlan)
         }
     }
 }

@@ -3,11 +3,13 @@ package org.kvxd.kiwi.agent.control
 import kotlinx.coroutines.*
 import org.kvxd.kiwi.agent.control.input.InputOverride
 import org.kvxd.kiwi.agent.pathing.calc.*
+import org.kvxd.kiwi.agent.pathing.execute.MovementExecutorRegistry
 import org.kvxd.kiwi.agent.pathing.goal.Goal
 import org.kvxd.kiwi.agent.ui.DebugState
 import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.coroutine.ClientDispatcher
+import org.kvxd.kiwi.util.coroutine.waitClientTicks
 
 object PathNavigator {
 
@@ -57,7 +59,7 @@ object PathNavigator {
                     ensureActive()
                     if (pausedForManualControl) {
                         pauseMovement()
-                        delay(50)
+                        waitClientTicks(1)
                         continue
                     }
 
@@ -83,7 +85,7 @@ object PathNavigator {
 
                     updateDebug()
 
-                    delay(50)
+                    waitClientTicks(1)
                 }
             }
         } finally {
@@ -95,6 +97,7 @@ object PathNavigator {
             currentGoal = null
             path = NodePath(emptyList())
             calculating = false
+            DebugState.pathCalculating = false
             DebugState.pathActive = false
             DebugState.log("Navigation ended")
         }
@@ -138,7 +141,10 @@ object PathNavigator {
     private fun updateReplanRequest() {
         when {
             path.isEmpty -> replanLimiter.request(REPLAN_INITIAL)
-            path.isFinished -> replanLimiter.request(REPLAN_FINISHED)
+            path.isFinished -> {
+                MovementController.stop()
+                replanLimiter.request(REPLAN_FINISHED)
+            }
             PathValidator.isPathObstructed(path) -> replanLimiter.request(REPLAN_OBSTRUCTED)
             path.isPartial && path.remaining <= PARTIAL_LOOKAHEAD_REMAINING -> {
                 replanLimiter.request(REPLAN_PARTIAL_LOOKAHEAD)
@@ -160,14 +166,16 @@ object PathNavigator {
         DebugState.pathLastAction = "Calculating..."
         DebugState.log("Calculating path ($reason)...")
 
-        val result = if (keepFollowingCurrentPath) {
-            calculateWhileFollowingCurrentPath(goal, previousPath)
-        } else {
-            PathPlanner.calculate(player.blockPosition(), goal)
+        val result = try {
+            if (keepFollowingCurrentPath) {
+                calculateWhileFollowingCurrentPath(goal, previousPath)
+            } else {
+                PathPlanner.calculate(player.blockPosition(), goal)
+            }
+        } finally {
+            calculating = false
+            DebugState.pathCalculating = false
         }
-
-        calculating = false
-        DebugState.pathCalculating = false
         if (result.status == PathStatus.UNREACHABLE || result.path == null || result.path.isEmpty) {
             val failure = result.reason ?: PathFailureReason.NoLegalMoves
 
@@ -219,7 +227,7 @@ object PathNavigator {
                     followCurrentPath()
                     updateDebug()
                 }
-                delay(50)
+                waitClientTicks(1)
             }
 
             if (path === followedPath && path.isFinished) {
@@ -231,14 +239,20 @@ object PathNavigator {
     }
 
     private fun followCurrentPath() {
-        val currentNode = path.current() ?: return
-        val executor = currentNode.type.executor
+        val currentNode = path.current() ?: run {
+            MovementController.stop()
+            return
+        }
+        val executor = MovementExecutorRegistry.executorFor(currentNode.type)
         executor.execute(currentNode, path)
         RotationManager.tick()
 
         if (PathProgress.hasReachedCurrent(path) && executor.isFinished(currentNode)) {
             path.advance()
             stuckDetector.reset()
+            if (path.isFinished) {
+                MovementController.stop()
+            }
         }
 
         if (stuckDetector.tick(path, pausedForManualControl)) {

@@ -94,6 +94,7 @@ object InputOverride {
     fun release() {
         publish(neutral)
         syncKeys(neutral)
+        player.isSprinting = false
         isActive = false
         player.input = KeyboardInput(client.options)
     }
@@ -118,6 +119,7 @@ object InputOverride {
     fun clearAll() {
         if (!isActive) return
         publish(neutral)
+        player.isSprinting = false
     }
 
     fun current(): InputIntent = if (isActive) intent else neutral
@@ -130,9 +132,7 @@ object InputOverride {
 
     private fun publish(next: InputIntent) {
         intent = next
-        if (next.sprint != player.isSprinting) {
-            player.isSprinting = next.sprint
-        }
+        player.isSprinting = next.sprint
     }
 
     private fun syncKeys(next: InputIntent) {

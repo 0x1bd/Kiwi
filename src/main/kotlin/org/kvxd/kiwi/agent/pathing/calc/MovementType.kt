@@ -1,21 +1,15 @@
 package org.kvxd.kiwi.agent.pathing.calc
 
-import org.kvxd.kiwi.agent.pathing.execute.MovementExecutor
-import org.kvxd.kiwi.agent.pathing.execute.types.DropExecutor
-import org.kvxd.kiwi.agent.pathing.execute.types.PillarExecutor
-import org.kvxd.kiwi.agent.pathing.execute.types.StandardExecutor
-
 enum class MovementType(
     val canSprint: Boolean,
-    val isSmoothable: Boolean,
-    val executor: MovementExecutor
+    val isSmoothable: Boolean
 ) {
 
-    TRAVEL(true, true, StandardExecutor),
-    JUMP(true, false, StandardExecutor),
+    TRAVEL(true, true),
+    JUMP(true, false),
 
-    WATER_WALK(false, true, StandardExecutor),
+    WATER_WALK(false, true),
 
-    DROP(false, false, DropExecutor),
-    PILLAR(false, false, PillarExecutor)
+    DROP(false, false),
+    PILLAR(false, false)
 }

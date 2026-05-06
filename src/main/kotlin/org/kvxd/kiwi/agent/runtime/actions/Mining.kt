@@ -1,9 +1,11 @@
 package org.kvxd.kiwi.agent.runtime.actions
 
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.agent.control.MovementController
 import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.agent.control.input.InputOverride
@@ -12,15 +14,15 @@ import org.kvxd.kiwi.agent.runtime.AgentPhase
 import org.kvxd.kiwi.agent.runtime.MiningTargeting
 import org.kvxd.kiwi.agent.runtime.AgentRuntime
 import org.kvxd.kiwi.agent.runtime.AgentFailure
-import org.kvxd.kiwi.client
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.isBlockInReach
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
+import org.kvxd.kiwi.util.coroutine.waitClient
+import org.kvxd.kiwi.util.math.RaycastHelper
 import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.math.RotationUtils
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 data class BlockInfo(val block: Block, val alternatives: List<Block> = emptyList(), val dropId: String = block.registryPath) {
@@ -44,48 +46,42 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
             if (state.block != blockInfo.block && state.block !in blockInfo.alternatives) break
 
             if (!isBlockInReach(pos)) {
-                val cleared = clearObstruction(pos, blockInfo)
                 goalPos = moveToMiningStand(pos, fallback = goalPos)
                 totalAttempts++
-                if (!cleared) delay(50.milliseconds)
                 continue
             }
 
             MiningUtil.selectBestTool(state)
 
-            val targetPos = RotationUtils.getClosestPointOnBlock(pos, player.eyePosition)
-            val rots = RotationUtils.getLookRotations(targetPos)
-            RotationManager.setTarget(rots.x, rots.y)
-
-            var aimTicks = 0
-            while (!RotationUtils.isLookingAt(targetPos, 0.5) && aimTicks < 20) {
-                delay(50.milliseconds)
-                aimTicks++
-            }
-
-            val obstruction = currentHitObstruction(pos, blockInfo)
-            if (obstruction != null) {
-                mineObstruction(obstruction)
+            val targetPos = aimAtMiningTarget(pos)
+            if (targetPos == null) {
+                val obstruction = miningRayObstruction(pos, blockInfo)
+                if (obstruction != null) {
+                    mineObstruction(obstruction)
+                    totalAttempts++
+                    waitClient(50.milliseconds)
+                    continue
+                }
+                goalPos = moveToMiningStand(pos, fallback = goalPos)
                 totalAttempts++
-                delay(50.milliseconds)
+                waitClient(50.milliseconds)
                 continue
             }
 
-            if (!RotationUtils.isLookingAt(targetPos, 0.5)) {
-                goalPos = moveToMiningStand(pos, fallback = goalPos)
+            if (!isCrosshairOnBlock(pos)) {
                 totalAttempts++
-                delay(50.milliseconds)
+                waitClient(50.milliseconds)
                 continue
             }
 
             InputOverride.update { attack = true }
             var innerTicks = 0
             while (!level.getBlockState(pos).isAir && innerTicks < 100) {
-                if (!RotationUtils.isLookingAt(targetPos, 0.5)) {
+                if (!RotationUtils.isLookingAt(targetPos, 0.8) || !isCrosshairOnBlock(pos)) {
                     InputOverride.update { attack = false }
                     break
                 }
-                delay(50.milliseconds)
+                waitClient(50.milliseconds)
                 innerTicks++
             }
             InputOverride.update { attack = false }
@@ -110,7 +106,7 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
         var pickupWait = 0
         val preCount = inventoryCount(blockInfo.dropId)
         while (inventoryCount(blockInfo.dropId) <= preCount && pickupWait < 15) {
-            delay(50.milliseconds)
+            waitClient(50.milliseconds)
             pickupWait++
         }
     }
@@ -126,7 +122,7 @@ private suspend fun AgentRuntime.moveToMiningStand(target: BlockPos, fallback: B
 
     var alignTicks = 0
     while (!MovementController.alignToBlockCenter(stand) && alignTicks < 20) {
-        delay(50.milliseconds)
+        waitClient(50.milliseconds)
         alignTicks++
     }
     MovementController.stop()
@@ -134,20 +130,87 @@ private suspend fun AgentRuntime.moveToMiningStand(target: BlockPos, fallback: B
     return stand
 }
 
-private fun currentHitObstruction(target: BlockPos, blockInfo: BlockInfo): BlockPos? {
-    val hit = client.hitResult as? BlockHitResult ?: return null
-    if (hit.type != HitResult.Type.BLOCK) return null
+private suspend fun aimAtMiningTarget(pos: BlockPos): Vec3? {
+    var lastTarget: Vec3? = null
+    var aimTicks = 0
 
-    val hitPos = hit.blockPos
-    if (hitPos == target) return null
+    while (aimTicks < 20) {
+        val targetPos = visibleMiningPoint(pos) ?: RotationUtils.getClosestPointOnBlock(pos, player.eyePosition)
+        lastTarget = targetPos
+        val rots = RotationUtils.getLookRotations(targetPos)
+        RotationManager.setTarget(rots.x, rots.y)
+        RotationManager.tick()
 
-    val state = level.getBlockState(hitPos)
-    if (state.isAir || !CollisionCache.isSolid(hitPos)) return null
+        if (RotationUtils.isLookingAt(targetPos, 0.8) && isCrosshairOnBlock(pos)) {
+            return targetPos
+        }
 
-    val hitBlock = state.block
-    if (hitBlock == blockInfo.block || hitBlock in blockInfo.alternatives) return null
+        waitClient(50.milliseconds)
+        aimTicks++
+    }
 
-    return hitPos.takeIf { canClearMiningObstruction(it, target, hitBlock) }
+    return lastTarget.takeIf { isCrosshairOnBlock(pos) }
+}
+
+private fun visibleMiningPoint(pos: BlockPos): Vec3? {
+    return miningProbePoints(pos).firstOrNull { point ->
+        val hit = clipToMiningPoint(point)
+        hit.type == HitResult.Type.BLOCK && hit.blockPos == pos
+    }
+}
+
+private fun miningProbePoints(pos: BlockPos): List<Vec3> {
+    val x = pos.x.toDouble()
+    val y = pos.y.toDouble()
+    val z = pos.z.toDouble()
+    return listOf(
+        Vec3(x + 0.5, y + 0.5, z + 0.5),
+        Vec3(x + 0.5, y + 0.85, z + 0.5),
+        Vec3(x + 0.5, y + 0.15, z + 0.5),
+        Vec3(x + 0.15, y + 0.5, z + 0.5),
+        Vec3(x + 0.85, y + 0.5, z + 0.5),
+        Vec3(x + 0.5, y + 0.5, z + 0.15),
+        Vec3(x + 0.5, y + 0.5, z + 0.85)
+    )
+}
+
+private fun clipToMiningPoint(point: Vec3): BlockHitResult {
+    return level.clip(
+        ClipContext(
+            player.eyePosition,
+            point,
+            ClipContext.Block.OUTLINE,
+            ClipContext.Fluid.NONE,
+            player
+        )
+    )
+}
+
+private fun isCrosshairOnBlock(pos: BlockPos): Boolean {
+    val hit = RaycastHelper.raycast(1.0f) as? BlockHitResult ?: return false
+    return hit.type == HitResult.Type.BLOCK && hit.blockPos == pos
+}
+
+private fun miningRayObstruction(target: BlockPos, blockInfo: BlockInfo): BlockPos? {
+    var obstruction: BlockPos? = null
+    for (point in miningProbePoints(target)) {
+        val hit = clipToMiningPoint(point)
+        if (hit.type != HitResult.Type.BLOCK) continue
+        if (hit.blockPos == target) return null
+
+        val hitPos = hit.blockPos
+        val state = level.getBlockState(hitPos)
+        if (state.isAir || !CollisionCache.isSolid(hitPos)) continue
+
+        val hitBlock = state.block
+        if (hitBlock == blockInfo.block || hitBlock in blockInfo.alternatives) continue
+
+        if (canClearMiningObstruction(hitPos, target, hitBlock)) {
+            obstruction = hitPos
+        }
+    }
+
+    return obstruction
 }
 
 private suspend fun AgentRuntime.mineObstruction(pos: BlockPos) {
@@ -158,25 +221,6 @@ private suspend fun AgentRuntime.mineObstruction(pos: BlockPos) {
     } finally {
         InputOverride.update { attack = false }
     }
-}
-
-private suspend fun AgentRuntime.clearObstruction(target: BlockPos, blockInfo: BlockInfo): Boolean {
-    val hit = client.hitResult
-    if (hit is BlockHitResult) {
-        val hitPos = hit.blockPos
-        if (hitPos == target) return true
-        val hitState = level.getBlockState(hitPos)
-        if (hitState.isAir) return true
-
-        val hitBlock = hitState.block
-        if (hitBlock == blockInfo.block || hitBlock in blockInfo.alternatives) return false
-
-        if (CollisionCache.isSolid(hitPos) && canClearMiningObstruction(hitPos, target, hitBlock)) {
-            mineObstruction(hitPos)
-            return true
-        }
-    }
-    return false
 }
 
 private fun canClearMiningObstruction(pos: BlockPos, target: BlockPos, block: Block): Boolean {

@@ -140,6 +140,12 @@ object ConfigData {
         256
     )
 
+    var pathSearchMaxIterations by int(
+        "pathSearchMaxIterations",
+        "Maximum path search iterations before returning the best partial path",
+        20000
+    )
+
     var agentMaxFailures by int(
         "agentMaxFailures",
         "Maximum recoverable agent action failures before stopping",

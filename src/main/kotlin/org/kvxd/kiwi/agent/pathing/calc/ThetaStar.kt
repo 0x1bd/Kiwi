@@ -4,14 +4,15 @@ import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.agent.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.agent.pathing.goal.Goal
 import org.kvxd.kiwi.agent.pathing.move.MovementProvider
+import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.level
 import kotlin.math.sqrt
 
 class ThetaStar {
 
-    private val nodeRegistry = HashMap<Long, Node>(16384)
+    private val nodeRegistry = HashMap<NodeStateKey, Node>(16384)
     private val openSet = MinHeap()
-    private val closedSet = HashSet<Long>(16384)
+    private val closedSet = HashSet<NodeStateKey>(16384)
     private val neighborBuffer = ArrayList<Node>(64)
 
     fun calculate(start: BlockPos, goal: Goal): PathResult {
@@ -26,7 +27,7 @@ class ThetaStar {
         val startNode = MovementProvider.getStartNode(start, hStart)
 
         openSet.add(startNode)
-        nodeRegistry[startNode.posLong] = startNode
+        nodeRegistry[startNode.stateKey] = startNode
 
         var bestNode: Node = startNode
         var bestH = startNode.costH
@@ -37,12 +38,17 @@ class ThetaStar {
         var finalPath: NodePath? = null
         var found = false
         var bestFrontierNode: Node? = null
+        var hitSearchLimit = false
 
         val approximateTarget = goal.getApproximateTarget()
         val targetOutsideLoadedChunks = !level.isLoaded(approximateTarget)
 
         while (!openSet.isEmpty()) {
             iterations++
+            if (iterations > ConfigData.pathSearchMaxIterations) {
+                hitSearchLimit = true
+                break
+            }
 
             val current = openSet.poll() ?: break
             nodesVisited++
@@ -58,8 +64,7 @@ class ThetaStar {
                 break
             }
 
-            val currentLong = current.posLong
-            if (!closedSet.add(currentLong)) continue
+            if (!closedSet.add(current.stateKey)) continue
 
             if (isLoadedChunkFrontier(current.pos, approximateTarget) && current.costH < hStart) {
                 bestFrontierNode = current
@@ -71,9 +76,6 @@ class ThetaStar {
 
             for (i in 0 until neighborBuffer.size) {
                 val neighborNode = neighborBuffer[i]
-                val nPosLong = neighborNode.posLong
-
-                if (closedSet.contains(nPosLong)) continue
 
                 val parent = current.parent
 
@@ -93,14 +95,19 @@ class ThetaStar {
                     potentialParent = current
                 }
 
-                var finalType = neighborNode.type
+                var finalAction = neighborNode.action
+                var finalType = finalAction.type
                 if (finalType == MovementType.TRAVEL || finalType == MovementType.JUMP) {
                     if (neighborNode.pos.y > potentialParent.pos.y) {
                         finalType = MovementType.JUMP
+                        finalAction = finalAction.withType(finalType)
                     }
                 }
 
-                val existingNode = nodeRegistry[nPosLong]
+                val finalKey = NodeStateKey(neighborNode.posLong, finalType)
+                if (closedSet.contains(finalKey)) continue
+
+                val existingNode = nodeRegistry[finalKey]
                 val hCost = goal.getHeuristic(neighborNode.pos) * 1.001
 
                 if (existingNode == null) {
@@ -108,18 +115,16 @@ class ThetaStar {
                         costG = potentialG,
                         costH = hCost,
                         parent = potentialParent,
-                        type = finalType
+                        action = finalAction
                     )
 
                     openSet.add(newNode)
-                    nodeRegistry[nPosLong] = newNode
+                    nodeRegistry[finalKey] = newNode
                 } else {
                     if (potentialG < existingNode.costG) {
                         existingNode.costG = potentialG
                         existingNode.parent = potentialParent
-                        existingNode.type = finalType
-                        existingNode.miningBlocks = neighborNode.miningBlocks
-                        existingNode.miningCost = neighborNode.miningCost
+                        existingNode.action = finalAction
 
                         openSet.update(existingNode)
                     }
@@ -139,10 +144,15 @@ class ThetaStar {
             finalPath = reconstructPath(bestFrontierNode, true)
             status = PathStatus.PARTIAL
             reason = PathFailureReason.OutsideLoadedChunks
+        } else if (hitSearchLimit && bestNode != startNode) {
+            finalPath = reconstructPath(bestNode, true)
+            status = PathStatus.PARTIAL
+            reason = PathFailureReason.SearchLimit
         } else {
             status = PathStatus.UNREACHABLE
             reason = when {
                 missingCapabilities.isNotEmpty() -> PathFailureReason.MissingCapability(missingCapabilities)
+                hitSearchLimit -> PathFailureReason.SearchLimit
                 nodesVisited <= 1 -> PathFailureReason.NoLegalMoves
                 targetOutsideLoadedChunks -> PathFailureReason.OutsideLoadedChunks
                 else -> PathFailureReason.NoLegalMoves

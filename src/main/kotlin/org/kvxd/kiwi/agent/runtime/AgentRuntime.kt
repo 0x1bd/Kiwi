@@ -2,7 +2,10 @@ package org.kvxd.kiwi.agent.runtime
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.agent.Agent
 import org.kvxd.kiwi.agent.ScanUtil
 import org.kvxd.kiwi.agent.control.PathNavigator
@@ -55,6 +58,8 @@ class AgentRuntime(
 
     fun inventoryCount(itemId: String): Int = agent.countItemInInventory(itemId)
 
+    fun inventoryCount(itemIds: Set<String>): Int = itemIds.sumOf(::inventoryCount)
+
     fun inventoryCounts(): Map<String, Int> {
         return InventoryUtil.fullInventory
             .asSequence()
@@ -66,6 +71,23 @@ class AgentRuntime(
     fun findNearestDrop(itemId: String): BlockPos? =
         ScanUtil.findNearestDroppedItem(itemId = itemId, radius = ConfigData.dropScanRadius)
             ?.blockPosition()
+
+    fun findNearestDrop(itemIds: Set<String>): Pair<String, BlockPos>? {
+        if (itemIds.isEmpty()) return null
+        val origin = player.blockPosition()
+        val aabb = AABB.ofSize(Vec3.atCenterOf(origin), ConfigData.dropScanRadius * 2.0, ConfigData.dropScanRadius * 2.0, ConfigData.dropScanRadius * 2.0)
+        return level.getEntities(null, aabb) { it is ItemEntity }
+            .asSequence()
+            .map { it as ItemEntity }
+            .mapNotNull { entity ->
+                val stack = entity.item
+                if (stack.isEmpty) return@mapNotNull null
+                val id = BuiltInRegistries.ITEM.getKey(stack.item).path
+                if (id !in itemIds) null else id to entity
+            }
+            .minByOrNull { (_, entity) -> entity.distanceToSqr(player.x, player.y, player.z) }
+            ?.let { (id, entity) -> id to entity.blockPosition() }
+    }
 
     fun findNearestBlock(block: Block): BlockPos? {
         val remembered = agent.findRememberedBlock(block)
@@ -86,6 +108,16 @@ class AgentRuntime(
 
     fun pushGoal(itemId: String, amount: Int, reason: String): GoalAgenda.PushResult {
         return agenda.push(itemId, amount, reason)
+    }
+
+    fun pushGoal(
+        itemId: String,
+        acceptedItemIds: Set<String>,
+        amount: Int,
+        reason: String,
+        displayName: String? = null
+    ): GoalAgenda.PushResult {
+        return agenda.push(itemId, acceptedItemIds, amount, reason, displayName)
     }
 
     fun popGoal(): GoalFrame? = agenda.pop()

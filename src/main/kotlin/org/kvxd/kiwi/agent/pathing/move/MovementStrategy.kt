@@ -3,6 +3,7 @@ package org.kvxd.kiwi.agent.pathing.move
 import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
+import org.kvxd.kiwi.agent.pathing.calc.PlannedMovementAction
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil.MiningPlan
 import kotlin.math.sqrt
 
@@ -24,6 +25,7 @@ abstract class AbstractMovement(private val defaultType: MovementType) : Movemen
         miningPlan: MiningPlan? = null
     ) {
         val miningCost = miningPlan?.cost ?: 0.0
+        val type = typeOverride ?: defaultType
         val g = parent.costG + baseCost + miningCost
         val h = sqrt(pos.distSqr(target))
         this.add(
@@ -32,9 +34,12 @@ abstract class AbstractMovement(private val defaultType: MovementType) : Movemen
                 parent = parent,
                 costG = g,
                 costH = h,
-                type = typeOverride ?: defaultType,
-                miningBlocks = miningPlan?.blocks.orEmpty(),
-                miningCost = miningCost
+                action = PlannedMovementAction(
+                    type = type,
+                    target = pos,
+                    miningBlocks = miningPlan?.blocks.orEmpty(),
+                    miningCost = miningCost
+                )
             )
         )
     }
