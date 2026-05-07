@@ -33,8 +33,17 @@ object DebugCommand : AbstractCommand("debug") {
         })
 
         root.then(literal("toggle").executes {
-            ConfigData.debugMode = !ConfigData.debugMode
-            it.source.feedback("Debug mode: ${if (ConfigData.debugMode) "ON" else "OFF"}")
+            val enable = !ConfigData.debugMode
+            if (enable) {
+                ConfigData.debugMode = true
+                val file = DebugState.startPathTraceLog()
+                DebugState.tracePath("debug mode enabled")
+                it.source.feedback("Debug mode: ON. Path trace: ${file.name}")
+            } else {
+                DebugState.stopPathTraceLog()
+                ConfigData.debugMode = false
+                it.source.feedback("Debug mode: OFF. Path trace: ${DebugState.pathTraceFilePath ?: "none"}")
+            }
             1
         })
 
@@ -74,7 +83,9 @@ object DebugCommand : AbstractCommand("debug") {
             appendLine("  \"path\": {")
             appendLine("    \"active\": ${DebugState.pathActive},")
             appendLine("    \"calculating\": ${DebugState.pathCalculating},")
+            appendLine("    \"traceFile\": ${DebugState.pathTraceFilePath?.let { "\"${escapeJson(it)}\"" } ?: "null"},")
             appendLine("    \"size\": ${DebugState.pathSize},")
+            appendLine("    \"index\": ${DebugState.pathIndex},")
             appendLine("    \"remaining\": ${DebugState.pathRemaining},")
             appendLine("    \"partial\": ${DebugState.pathPartial},")
             appendLine("    \"goalType\": \"${DebugState.pathGoalType}\",")
@@ -91,11 +102,21 @@ object DebugCommand : AbstractCommand("debug") {
             appendLine("  },")
             appendLine("  \"recentLog\": [")
             if (DebugState.recentMessages.isEmpty()) {
-                appendLine("  ]")
+                appendLine("  ],")
             } else {
                 for ((i, msg) in DebugState.recentMessages.withIndex()) {
                     val comma = if (i < DebugState.recentMessages.lastIndex) "," else ""
-                    appendLine("    \"${msg.replace("\"", "\\\"")}\"$comma")
+                    appendLine("    \"${escapeJson(msg)}\"$comma")
+                }
+                appendLine("  ],")
+            }
+            appendLine("  \"pathTrace\": [")
+            if (DebugState.pathTrace.isEmpty()) {
+                appendLine("  ]")
+            } else {
+                for ((i, msg) in DebugState.pathTrace.withIndex()) {
+                    val comma = if (i < DebugState.pathTrace.lastIndex) "," else ""
+                    appendLine("    \"${escapeJson(msg)}\"$comma")
                 }
                 appendLine("  ]")
             }
@@ -109,5 +130,14 @@ object DebugCommand : AbstractCommand("debug") {
         } catch (e: Exception) {
             source.error("Failed to write debug dump: ${e.message}")
         }
+    }
+
+    private fun escapeJson(value: String): String {
+        return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
     }
 }

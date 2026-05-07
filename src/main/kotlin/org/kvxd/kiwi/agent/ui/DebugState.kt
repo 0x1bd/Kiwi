@@ -1,6 +1,12 @@
 package org.kvxd.kiwi.agent.ui
 
 import net.minecraft.core.BlockPos
+import org.kvxd.kiwi.Kiwi
+import org.kvxd.kiwi.client
+import org.kvxd.kiwi.config.ConfigData
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object DebugState {
 
@@ -31,7 +37,13 @@ object DebugState {
 
     var lastMessageTime = 0L
     var recentMessages = mutableListOf<String>()
+    var pathTrace = mutableListOf<String>()
+    val pathTraceFilePath: String?
+        get() = pathTraceFile?.absolutePath
+
+    private var pathTraceFile: File? = null
     private const val MAX_RECENT = 8
+    private const val MAX_PATH_TRACE = 250
 
     fun reset() {
         pathActive = false
@@ -66,5 +78,48 @@ object DebugState {
             recentMessages.removeAt(0)
         }
         lastMessageTime = System.currentTimeMillis()
+    }
+
+    fun tracePath(message: String) {
+        if (!ConfigData.debugMode) return
+
+        val entry = "${LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)} ${System.currentTimeMillis()} $message"
+        pathTrace.add(entry)
+        if (pathTrace.size > MAX_PATH_TRACE) {
+            pathTrace.removeAt(0)
+        }
+        appendPathTrace(entry)
+        Kiwi.logger.info("[PathTrace] $message")
+    }
+
+    fun startPathTraceLog(): File {
+        val dir = File(client.gameDirectory, "config/kiwi")
+        dir.mkdirs()
+
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        val file = File(dir, "path_trace_$timestamp.log")
+        pathTraceFile = file
+        pathTrace.clear()
+        file.writeText(
+            buildString {
+                appendLine("# Kiwi path trace")
+                appendLine("# started=${LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)}")
+                appendLine("# epoch_ms=${System.currentTimeMillis()}")
+            }
+        )
+        return file
+    }
+
+    fun stopPathTraceLog() {
+        tracePath("debug mode disabled")
+    }
+
+    private fun appendPathTrace(entry: String) {
+        val file = pathTraceFile ?: startPathTraceLog()
+        try {
+            file.appendText("$entry\n")
+        } catch (e: Exception) {
+            Kiwi.logger.warn("Failed to write path trace: ${e.message}", e)
+        }
     }
 }

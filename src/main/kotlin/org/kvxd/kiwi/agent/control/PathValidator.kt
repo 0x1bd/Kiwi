@@ -9,17 +9,30 @@ import kotlin.math.min
 
 object PathValidator {
 
-    fun isPathObstructed(path: NodePath): Boolean {
-        if (path.isEmpty || path.isFinished) return false
+    data class ValidationResult(
+        val obstructed: Boolean,
+        val reason: String = ""
+    )
 
-        val current = path.current() ?: return false
+    fun isPathObstructed(path: NodePath): Boolean = validate(path).obstructed
+
+    fun validate(path: NodePath): ValidationResult {
+        if (path.isEmpty || path.isFinished) return ValidationResult(false)
+
+        val current = path.current() ?: return ValidationResult(false)
         val prev = path.previous()
 
 
-        if (path.index > 0 && !isValidNode(current)) return true
+        if (path.index > 0) {
+            invalidNodeReason(current)?.let {
+                return ValidationResult(true, "current node invalid: $it")
+            }
+        }
 
         if (prev != null) {
-            if (!validateTransition(prev, current)) return true
+            invalidTransitionReason(prev, current)?.let {
+                return ValidationResult(true, "current transition invalid: $it")
+            }
         }
 
         val lookahead = min(path.size, path.index + 3)
@@ -29,13 +42,17 @@ object PathValidator {
             val nextNode = path[i] ?: continue
 
 
-            if (!isValidNode(nextNode)) return true
-            if (!validateTransition(previousNodeForLookahead, nextNode)) return true
+            invalidNodeReason(nextNode)?.let {
+                return ValidationResult(true, "lookahead[$i] node invalid: $it")
+            }
+            invalidTransitionReason(previousNodeForLookahead, nextNode)?.let {
+                return ValidationResult(true, "lookahead[$i] transition invalid: $it")
+            }
 
             previousNodeForLookahead = nextNode
         }
 
-        return false
+        return ValidationResult(false)
     }
 
     private fun isClearable(blockPos: net.minecraft.core.BlockPos): Boolean {
@@ -45,37 +62,37 @@ object PathValidator {
         return cost != null
     }
 
-    private fun isValidNode(node: Node): Boolean {
+    private fun invalidNodeReason(node: Node): String? {
         if (node.type == MovementType.TRAVEL || node.type == MovementType.JUMP || node.type == MovementType.DROP) {
-            if (!isClearable(node.pos)) return false
-            if (!isClearable(node.pos.above())) return false
+            if (!isClearable(node.pos)) return "${node.pos} feet not clearable"
+            if (!isClearable(node.pos.above())) return "${node.pos.above()} head not clearable"
         }
-        return true
+        return null
     }
 
-    private fun validateTransition(prev: Node, current: Node): Boolean {
+    private fun invalidTransitionReason(prev: Node, current: Node): String? {
         when (current.type) {
             MovementType.TRAVEL -> {
                 if (prev.pos.distSqr(current.pos) > 3.0) {
-                    if (!LineOfSight.check(prev, current)) return false
+                    if (!LineOfSight.check(prev, current)) return "${prev.pos} -> ${current.pos} line of sight blocked"
                 }
             }
 
             MovementType.JUMP -> {
-                if (!isClearable(prev.pos.above(2))) return false
+                if (!isClearable(prev.pos.above(2))) return "${prev.pos.above(2)} jump headroom not clearable"
 
-                if (!org.kvxd.kiwi.agent.pathing.cache.CollisionCache.isSolid(current.pos.below())) return false
+                if (!org.kvxd.kiwi.agent.pathing.cache.CollisionCache.isSolid(current.pos.below())) return "${current.pos.below()} jump landing support not solid"
             }
 
             MovementType.DROP -> {
-                if (!isClearable(prev.pos.above())) return false
-                if (!org.kvxd.kiwi.agent.pathing.cache.CollisionCache.isSolid(current.pos.below())) return false
+                if (!isClearable(prev.pos.above())) return "${prev.pos.above()} drop headroom not clearable"
+                if (!org.kvxd.kiwi.agent.pathing.cache.CollisionCache.isSolid(current.pos.below())) return "${current.pos.below()} drop landing support not solid"
             }
 
             else -> {
                 // should be handled by executors
             }
         }
-        return true
+        return null
     }
 }

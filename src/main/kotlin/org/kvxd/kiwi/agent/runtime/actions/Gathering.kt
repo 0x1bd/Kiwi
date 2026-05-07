@@ -85,6 +85,7 @@ suspend fun AgentRuntime.collectItems(itemIds: Set<String>, amount: Int) {
             waitClient(50.milliseconds)
             fineTicks++
         }
+        MovementController.stop()
 
         if (fineTicks >= ConfigData.collectFineTuneTicks) {
             skippedItems.add(targetItem.id)
@@ -107,6 +108,7 @@ suspend fun AgentRuntime.collectItems(itemIds: Set<String>, amount: Int) {
     if (inventoryCount(acceptedIds) < amount) {
         throw AgentFailure("Failed to collect enough $label after ${ConfigData.collectMaxAttempts} attempts")
     }
+    MovementController.stop()
 }
 
 private fun AgentRuntime.findSuitableItem(

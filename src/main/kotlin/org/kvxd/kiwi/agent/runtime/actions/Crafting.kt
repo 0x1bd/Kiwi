@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 import org.kvxd.kiwi.agent.*
+import org.kvxd.kiwi.agent.control.MovementController
 import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.agent.control.input.InputOverride
 import org.kvxd.kiwi.agent.pathing.cache.CollisionCache
@@ -40,7 +41,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 suspend fun AgentRuntime.craftItem(recipe: Recipe) {
     phase = AgentPhase.CRAFTING
-    InputOverride.update { attack = false }
+    MovementController.stop()
+    InputOverride.update { clearActions() }
 
     val needTable = recipe.source == ItemSource.CRAFTING_TABLE
 
@@ -61,7 +63,8 @@ suspend fun AgentRuntime.craftItem(recipe: Recipe) {
 
 suspend fun AgentRuntime.smeltItem(recipe: Recipe) {
     phase = AgentPhase.SMELTING
-    InputOverride.update { attack = false }
+    MovementController.stop()
+    InputOverride.update { clearActions() }
 
     val furnacePos = findOrPlaceFurnace()
     openFurnace(furnacePos)
