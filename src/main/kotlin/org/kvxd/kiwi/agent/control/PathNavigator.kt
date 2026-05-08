@@ -177,7 +177,7 @@ object PathNavigator {
         }
     }
 
-    private fun requestReplan(reason: String, detail: String) {
+    fun requestReplan(reason: String, detail: String = "") {
         replanLimiter.request(reason)
 
         val key = "$reason|$detail|${path.index}|${path.size}|${path.current()?.pos}|${path.previous()?.pos}"
@@ -375,7 +375,8 @@ object PathNavigator {
     private fun node(node: Node?): String {
         if (node == null) return "null"
         val mining = if (node.miningBlocks.isEmpty()) "" else ",mine=${node.miningBlocks.size},mineCost=${fmt(node.miningCost)}"
-        return "${node.type}@${block(node.pos)}$mining"
+        val pillarBlocks = if (node.pillarBlocks > 0 || node.type == MovementType.PILLAR) ",pillarBlocks=${node.pillarBlocks}" else ""
+        return "${node.type}@${block(node.pos)}$mining$pillarBlocks"
     }
 
     private fun block(pos: net.minecraft.core.BlockPos?): String {

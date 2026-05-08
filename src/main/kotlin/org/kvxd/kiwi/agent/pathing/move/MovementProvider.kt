@@ -22,14 +22,24 @@ object MovementProvider {
     }
 
     fun getStartNode(start: BlockPos, heuristic: Double): Node {
+        val initialPillarBlocks = PathInventoryTracker.initialPillarBlocks()
         for (strategy in STRATEGIES) {
             val node = strategy.getStartNode(start)
             if (node != null) {
                 node.costH = heuristic
+                applyInitialPillarBlocks(node, initialPillarBlocks)
                 return node
             }
         }
 
-        return Node(start, null, 0.0, heuristic, MovementType.TRAVEL)
+        return Node(start, null, 0.0, heuristic, MovementType.TRAVEL, pillarBlocks = initialPillarBlocks)
+    }
+
+    private fun applyInitialPillarBlocks(node: Node, pillarBlocks: Int) {
+        var current: Node? = node
+        while (current != null) {
+            current.pillarBlocks = pillarBlocks
+            current = current.parent
+        }
     }
 }

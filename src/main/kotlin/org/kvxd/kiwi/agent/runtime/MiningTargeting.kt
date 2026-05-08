@@ -3,6 +3,7 @@ package org.kvxd.kiwi.agent.runtime
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import org.kvxd.kiwi.agent.Agent
 import org.kvxd.kiwi.agent.pathing.cache.CollisionCache
 import org.kvxd.kiwi.canInteractWithBlock
 import org.kvxd.kiwi.player
@@ -29,7 +30,22 @@ object MiningTargeting {
                 val eye = Vec3(stand.x + 0.5, stand.y + player.eyeHeight.toDouble(), stand.z + 0.5)
                 targetBox.distanceToSqr(eye) <= reachSq
             }
-            .minByOrNull { it.distSqr(playerPos) }
+            .minByOrNull { standScore(it, target, playerPos) }
+    }
+
+    private fun standScore(stand: BlockPos, target: BlockPos, playerPos: BlockPos): Double {
+        var score = stand.distSqr(playerPos)
+        val support = stand.below()
+
+        if (support in Agent.context.placedPositions || support in Agent.context.minedPositions) {
+            score += 16.0
+        }
+
+        if (stand.x == target.x && stand.z == target.z && stand.y > target.y + 1) {
+            score += 4.0
+        }
+
+        return score
     }
 
     private fun candidateStandPositions(target: BlockPos): Sequence<BlockPos> = sequence {

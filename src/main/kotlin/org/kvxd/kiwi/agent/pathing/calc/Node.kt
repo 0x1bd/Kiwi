@@ -9,6 +9,7 @@ data class Node(
     var costG: Double,
     var costH: Double,
     var action: MovementAction,
+    var pillarBlocks: Int = 0,
     var heapIndex: Int = -1
 ) : Comparable<Node> {
 
@@ -20,6 +21,7 @@ data class Node(
         type: MovementType,
         miningBlocks: List<BlockPos> = emptyList(),
         miningCost: Double = 0.0,
+        pillarBlocks: Int = 0,
         heapIndex: Int = -1
     ) : this(
         pos = pos,
@@ -27,13 +29,14 @@ data class Node(
         costG = costG,
         costH = costH,
         action = PlannedMovementAction(type, pos, miningBlocks, miningCost),
+        pillarBlocks = pillarBlocks,
         heapIndex = heapIndex
     )
 
     val costF: Double get() = costG + costH
 
     val posLong: Long = pos.asLong()
-    val stateKey: NodeStateKey get() = NodeStateKey(posLong, type)
+    val stateKey: NodeStateKey get() = NodeStateKey(posLong, type, pillarBlocks.coerceAtMost(MAX_TRACKED_PILLAR_BLOCKS))
 
     var type: MovementType
         get() = action.type
@@ -67,5 +70,8 @@ data class Node(
 
 data class NodeStateKey(
     val posLong: Long,
-    val type: MovementType
+    val type: MovementType,
+    val pillarBlocks: Int
 )
+
+const val MAX_TRACKED_PILLAR_BLOCKS = 64

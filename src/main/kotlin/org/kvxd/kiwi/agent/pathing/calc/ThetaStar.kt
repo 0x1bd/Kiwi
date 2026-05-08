@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import org.kvxd.kiwi.agent.pathing.calc.structs.MinHeap
 import org.kvxd.kiwi.agent.pathing.goal.Goal
 import org.kvxd.kiwi.agent.pathing.move.MovementProvider
+import org.kvxd.kiwi.agent.pathing.move.PathInventoryTracker
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.level
 import kotlin.math.sqrt
@@ -104,7 +105,16 @@ class ThetaStar {
                     }
                 }
 
-                val finalKey = NodeStateKey(neighborNode.posLong, finalType)
+                val finalPillarBlocks = PathInventoryTracker.afterMovement(
+                    potentialParent,
+                    finalType,
+                    finalAction.miningBlocks
+                )
+                val finalKey = NodeStateKey(
+                    neighborNode.posLong,
+                    finalType,
+                    finalPillarBlocks.coerceAtMost(MAX_TRACKED_PILLAR_BLOCKS)
+                )
                 if (closedSet.contains(finalKey)) continue
 
                 val existingNode = nodeRegistry[finalKey]
@@ -115,7 +125,8 @@ class ThetaStar {
                         costG = potentialG,
                         costH = hCost,
                         parent = potentialParent,
-                        action = finalAction
+                        action = finalAction,
+                        pillarBlocks = finalPillarBlocks
                     )
 
                     openSet.add(newNode)
@@ -125,6 +136,7 @@ class ThetaStar {
                         existingNode.costG = potentialG
                         existingNode.parent = potentialParent
                         existingNode.action = finalAction
+                        existingNode.pillarBlocks = finalPillarBlocks
 
                         openSet.update(existingNode)
                     }

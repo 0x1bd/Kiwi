@@ -16,6 +16,7 @@ import org.kvxd.kiwi.agent.runtime.AgentRuntime
 import org.kvxd.kiwi.agent.runtime.AgentFailure
 import org.kvxd.kiwi.agent.ui.DebugState
 import org.kvxd.kiwi.config.ConfigData
+import org.kvxd.kiwi.canInteractWithBlock
 import org.kvxd.kiwi.isBlockInReach
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
@@ -34,7 +35,10 @@ private const val MINING_STAND_REACH = 0.75
 
 suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
     phase = AgentPhase.MINING
-    var goalPos = moveToMiningStand(pos)
+    var goalPos: BlockPos? = null
+    if (!canInteractWithBlock(pos)) {
+        goalPos = moveToMiningStand(pos)
+    }
 
     val maxOuterAttempts = 5
     var totalAttempts = 0
@@ -57,8 +61,8 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
 
             MiningUtil.selectBestTool(state)
 
-            val targetPos = aimAtMiningTarget(pos)
-            if (targetPos == null) {
+            val visibleTarget = visibleMiningPoint(pos)
+            if (visibleTarget == null) {
                 val obstruction = miningRayObstruction(pos, blockInfo)
                 if (obstruction != null) {
                     mineObstruction(obstruction)
@@ -67,6 +71,13 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
                     continue
                 }
                 goalPos = moveToMiningStand(pos, fallback = goalPos)
+                totalAttempts++
+                waitClient(50.milliseconds)
+                continue
+            }
+
+            val targetPos = aimAtMiningTarget(pos, visibleTarget)
+            if (targetPos == null) {
                 totalAttempts++
                 waitClient(50.milliseconds)
                 continue
@@ -138,12 +149,12 @@ private suspend fun AgentRuntime.moveToMiningStand(target: BlockPos, fallback: B
     return stand
 }
 
-private suspend fun aimAtMiningTarget(pos: BlockPos): Vec3? {
+private suspend fun aimAtMiningTarget(pos: BlockPos, initialTarget: Vec3): Vec3? {
     var lastTarget: Vec3? = null
     var aimTicks = 0
 
     while (aimTicks < 20) {
-        val targetPos = visibleMiningPoint(pos) ?: RotationUtils.getClosestPointOnBlock(pos, player.eyePosition)
+        val targetPos = visibleMiningPoint(pos) ?: initialTarget
         lastTarget = targetPos
         val rots = RotationUtils.getLookRotations(targetPos)
         RotationManager.setTarget(rots.x, rots.y)

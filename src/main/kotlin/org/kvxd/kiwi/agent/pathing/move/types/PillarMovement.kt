@@ -1,14 +1,12 @@
 package org.kvxd.kiwi.agent.pathing.move.types
 
 import net.minecraft.core.BlockPos
-import net.minecraft.world.item.BlockItem
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.agent.pathing.calc.MovementType
 import org.kvxd.kiwi.agent.pathing.calc.Node
 import org.kvxd.kiwi.agent.pathing.move.AbstractMovement
 import org.kvxd.kiwi.agent.pathing.move.MovementCosts
 import org.kvxd.kiwi.agent.pathing.move.MovementObstructionUtil
-import org.kvxd.kiwi.player
 
 object PillarMovement : AbstractMovement(MovementType.PILLAR) {
 
@@ -16,13 +14,7 @@ object PillarMovement : AbstractMovement(MovementType.PILLAR) {
         if (!ConfigData.allowPillar) return
         if (ConfigData.allowedBuildBlockTypes.isEmpty()) return
 
-        val hasBlocks = (0..8).any { slot ->
-            val stack = player.inventory.getItem(slot)
-            val blockItem = stack.item as? BlockItem ?: return@any false
-            blockItem.block in ConfigData.allowedBuildBlockTypes
-        }
-
-        if (!hasBlocks) return
+        if (current.pillarBlocks <= 0) return
 
         val dest = current.pos.above()
 

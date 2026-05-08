@@ -13,7 +13,6 @@ import org.kvxd.kiwi.agent.pathing.calc.NodePath
 import org.kvxd.kiwi.agent.pathing.execute.ExecutionMiningUtil
 import org.kvxd.kiwi.agent.pathing.execute.MovementExecutor
 import org.kvxd.kiwi.player
-import org.kvxd.kiwi.util.ClientMessenger
 import org.kvxd.kiwi.util.InventoryUtil
 import org.kvxd.kiwi.util.registryPath
 
@@ -54,8 +53,11 @@ object PillarExecutor : MovementExecutor {
                 val blockItem = stack.item as? BlockItem ?: return@ensureInHotbar false
                 blockItem.block.registryPath in Agent.context.minedItemIds
             })) {
-            ClientMessenger.error("No allowed blocks in inventory for pillaring")
-            PathNavigator.stop()
+            InputOverride.update {
+                jump = false
+                use = false
+            }
+            PathNavigator.requestReplan("pillar inventory", "no allowed blocks in inventory")
             return
         }
 

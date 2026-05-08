@@ -39,7 +39,8 @@ abstract class AbstractMovement(private val defaultType: MovementType) : Movemen
                     target = pos,
                     miningBlocks = miningPlan?.blocks.orEmpty(),
                     miningCost = miningCost
-                )
+                ),
+                pillarBlocks = PathInventoryTracker.afterMovement(parent, type, miningPlan?.blocks.orEmpty())
             )
         )
     }
