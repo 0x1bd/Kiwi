@@ -22,10 +22,9 @@ enum class ItemSource {
 data class RecipeIngredient(
     val count: Int,
     val itemIds: List<String>,
-    val displayName: String
+    val displayName: String,
+    val isTag: Boolean = false
 ) {
-    val isTag: Boolean get() = itemIds.size > 1
-
     companion object {
         fun fromParsed(ingredient: org.kvxd.kiwi.recipe.ParsedIngredient): RecipeIngredient {
             val itemIds = when (ingredient.kind) {
@@ -40,7 +39,44 @@ data class RecipeIngredient(
             return RecipeIngredient(
                 count = 1,
                 itemIds = itemIds,
-                displayName = ingredient.displayName
+                displayName = ingredient.displayName,
+                isTag = ingredient.kind == org.kvxd.kiwi.recipe.IngredientKind.TAG
+            )
+        }
+
+        fun fromParsedSlot(slot: List<org.kvxd.kiwi.recipe.ParsedIngredient>): RecipeIngredient? {
+            if (slot.isEmpty()) return null
+
+            val itemIds = linkedSetOf<String>()
+            var hasTag = false
+            val displayNames = linkedSetOf<String>()
+
+            for (ingredient in slot) {
+                when (ingredient.kind) {
+                    org.kvxd.kiwi.recipe.IngredientKind.ITEM -> {
+                        itemIds.add(ingredient.name.removePrefix("minecraft:"))
+                        displayNames.add(ingredient.displayName)
+                    }
+                    org.kvxd.kiwi.recipe.IngredientKind.TAG -> {
+                        hasTag = true
+                        val resolved = TagResolver.getItems(ingredient.name)
+                        if (resolved.isNotEmpty()) {
+                            resolved.mapTo(itemIds) { it.removePrefix("minecraft:") }
+                        } else {
+                            itemIds.add(ingredient.name.removePrefix("minecraft:"))
+                        }
+                        displayNames.add("#${ingredient.displayName}")
+                    }
+                }
+            }
+
+            if (itemIds.isEmpty()) return null
+
+            return RecipeIngredient(
+                count = 1,
+                itemIds = itemIds.toList(),
+                displayName = displayNames.joinToString("|"),
+                isTag = hasTag
             )
         }
     }
@@ -68,6 +104,8 @@ object RecipeLookup {
     private var _craftingRecipes: List<Recipe> = emptyList()
     private var _cookingRecipes: List<Recipe> = emptyList()
     private var _recipesByResult: Map<String, List<Recipe>> = emptyMap()
+    private var _cookingRecipesByResult: Map<String, List<Recipe>> = emptyMap()
+    private var _cookableResults: Set<String> = emptySet()
     private var _harvestByBlock: Map<Block, BlockHarvest> = emptyMap()
     private var _harvestByDrop: Map<String, BlockHarvest> = emptyMap()
     private var _harvestSourcesByDrop: Map<String, List<BlockHarvest>> = emptyMap()
@@ -103,6 +141,16 @@ object RecipeLookup {
         }
 
     fun getRecipesFor(itemId: String): List<Recipe> = recipesByResult[itemId].orEmpty()
+
+    fun getCookingRecipesFor(itemId: String): List<Recipe> {
+        ensureLoaded()
+        return _cookingRecipesByResult[itemId.removePrefix("minecraft:")].orEmpty()
+    }
+
+    fun hasCookingRecipeFor(itemId: String): Boolean {
+        ensureLoaded()
+        return itemId.removePrefix("minecraft:") in _cookableResults
+    }
 
     fun getHarvestFor(blockId: String): BlockHarvest? {
         ensureLoaded()
@@ -155,6 +203,7 @@ object RecipeLookup {
         val crafting = mutableListOf<Recipe>()
         val cooking = mutableListOf<Recipe>()
         val resultMap = mutableMapOf<String, MutableList<Recipe>>()
+        val cookingResultMap = mutableMapOf<String, MutableList<Recipe>>()
 
         val seen = mutableSetOf<String>()
 
@@ -175,11 +224,9 @@ object RecipeLookup {
                     continue
                 }
 
-                val ingredients = parsed.ingredients.mapNotNull { slot ->
-                    slot.firstOrNull()?.let { RecipeIngredient.fromParsed(it) }
-                }
+                val ingredients = parsed.ingredients.mapNotNull { RecipeIngredient.fromParsedSlot(it) }
 
-                val slots = parsed.gridSlots.map { it?.let { RecipeIngredient.fromParsed(it) } }
+                val slots = parsed.ingredients.map { RecipeIngredient.fromParsedSlot(it) }
 
                 val merged = mergeIngredients(ingredients.filterNotNull())
 
@@ -211,9 +258,7 @@ object RecipeLookup {
                 val item = findItem(parsed.resultId)
                 if (item == null) continue
 
-                val ingredients = parsed.ingredients.mapNotNull { slot ->
-                    slot.firstOrNull()?.let { RecipeIngredient.fromParsed(it) }
-                }
+                val ingredients = parsed.ingredients.mapNotNull { RecipeIngredient.fromParsedSlot(it) }
 
                 val recipe = Recipe(
                     result = { item },
@@ -228,12 +273,15 @@ object RecipeLookup {
                 )
 
                 cooking.add(recipe)
+                cookingResultMap.getOrPut(recipe.resultId) { mutableListOf() }.add(recipe)
             }
         }
 
         _craftingRecipes = crafting
         _cookingRecipes = cooking
         _recipesByResult = resultMap
+        _cookingRecipesByResult = cookingResultMap
+        _cookableResults = cookingResultMap.keys
 
         buildHarvestMaps()
 

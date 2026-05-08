@@ -11,12 +11,14 @@ object TagResolver {
 
     private val tagToItems = mutableMapOf<String, Set<String>>()
     private val tagToRefs = mutableMapOf<String, Set<String>>()
+    private val resolvedCache = mutableMapOf<String, Set<String>>()
 
     val isLoaded: Boolean get() = tagToItems.isNotEmpty()
 
     fun load(inputs: List<Pair<String, InputStream>>) {
         tagToItems.clear()
         tagToRefs.clear()
+        resolvedCache.clear()
         for ((filename, stream) in inputs) {
             try {
                 val (items, refs) = parseTagJson(stream)
@@ -36,7 +38,10 @@ object TagResolver {
     }
 
     fun resolve(tagId: String): Set<String> {
-        return resolveRecursive(tagId, mutableSetOf())
+        val clean = tagId.removePrefix("#")
+        return resolvedCache.getOrPut(clean) {
+            resolveRecursive(clean, mutableSetOf())
+        }
     }
 
     private fun resolveRecursive(tagId: String, visited: MutableSet<String>): Set<String> {

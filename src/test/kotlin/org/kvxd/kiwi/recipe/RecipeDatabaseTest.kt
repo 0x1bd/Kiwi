@@ -1,6 +1,7 @@
 package org.kvxd.kiwi.recipe
 
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -8,9 +9,12 @@ class RecipeDatabaseTest {
 
     @BeforeEach
     fun loadDatabase() {
-        if (!RecipeDatabase.isLoaded) {
-            RecipeDatabase.load()
-        }
+        RecipeDatabase.load()
+    }
+
+    @AfterEach
+    fun restoreDatabase() {
+        RecipeDatabase.load()
     }
 
     @Test
@@ -100,5 +104,52 @@ class RecipeDatabaseTest {
         val empty = emptyMap<String, Int>()
         val results = RecipeDatabase.findCraftableRecipes(emptySet(), empty)
         assertTrue(results.isEmpty(), "No recipes should be craftable with empty inventory")
+    }
+
+    @Test
+    fun `canCraft consumes duplicate item ingredients`() {
+        val recipe = ParsedRecipe(
+            id = "test_duplicate_sticks",
+            kind = ParsedRecipeKind.SHAPELESS,
+            resultId = "minecraft:test_result",
+            resultCount = 1,
+            ingredients = listOf(
+                listOf(ParsedIngredient(IngredientKind.ITEM, "minecraft:stick")),
+                listOf(ParsedIngredient(IngredientKind.ITEM, "minecraft:stick"))
+            ),
+            width = 0,
+            height = 0,
+            source = "hand_craft",
+            cookingTime = 0,
+            experience = 0f
+        )
+
+        assertFalse(RecipeDatabase.canCraft(recipe, mapOf("stick" to 1)))
+        assertTrue(RecipeDatabase.canCraft(recipe, mapOf("stick" to 2)))
+    }
+
+    @Test
+    fun `canCraft consumes tag ingredients from available counts`() {
+        val recipe = ParsedRecipe(
+            id = "test_tag_count",
+            kind = ParsedRecipeKind.SHAPELESS,
+            resultId = "minecraft:test_result",
+            resultCount = 1,
+            ingredients = listOf(
+                listOf(ParsedIngredient(IngredientKind.TAG, "minecraft:test_planks")),
+                listOf(ParsedIngredient(IngredientKind.TAG, "minecraft:test_planks"))
+            ),
+            width = 0,
+            height = 0,
+            source = "hand_craft",
+            cookingTime = 0,
+            experience = 0f
+        )
+
+        val tagJson = """{ "values": ["minecraft:oak_planks", "minecraft:birch_planks"] }"""
+        TagResolver.load(listOf("test_planks.json" to java.io.ByteArrayInputStream(tagJson.toByteArray(Charsets.UTF_8))))
+
+        assertFalse(RecipeDatabase.canCraft(recipe, mapOf("oak_planks" to 1)))
+        assertTrue(RecipeDatabase.canCraft(recipe, mapOf("oak_planks" to 1, "birch_planks" to 1)))
     }
 }

@@ -16,7 +16,6 @@ import org.kvxd.kiwi.harvest.HarvestToolType
 import org.kvxd.kiwi.recipe.ParsedRecipe
 import org.kvxd.kiwi.recipe.RecipeGraph
 import org.kvxd.kiwi.recipe.TagResolver
-import org.kvxd.kiwi.util.coroutine.waitClientTicks
 import org.kvxd.kiwi.util.registryPath
 import kotlin.math.max
 
@@ -115,7 +114,6 @@ object PlanningEngine {
             if (id in dropCache) dropCache[id]
             else plan.environment.findNearestDrop(id).also {
                 dropCache[id] = it
-                waitClientTicks(1)
             }
         }
         val cachedFindClosestBlock: suspend (List<Block>) -> Pair<Block, BlockPos>? = { blocks ->
@@ -123,7 +121,6 @@ object PlanningEngine {
             if (key in blockCache) blockCache[key]
             else plan.environment.findClosestBlock(blocks).also {
                 blockCache[key] = it
-                waitClientTicks(1)
             }
         }
         val cachedFindNearestDropAny: suspend (Set<String>) -> Pair<String, BlockPos>? = { itemIds ->
@@ -300,7 +297,6 @@ object PlanningEngine {
         if (craftPlan.canCraft) {
             if (craftPlan.recipe.source == ItemSource.CRAFTING_TABLE) {
                 val tableNearby = plan.environment.findNearestBlock(Blocks.CRAFTING_TABLE)
-                waitClientTicks(1)
                 val hasTable = (plan.inventoryCounts[WorkstationIds.CRAFTING_TABLE] ?: 0) > 0
                 if (!hasTable && tableNearby == null && WorkstationIds.CRAFTING_TABLE !in ancestors) {
                     candidates.add(
@@ -337,15 +333,15 @@ object PlanningEngine {
         }
         if (need != null) {
             candidates.add(
-                    ScoredDecision(
-                        PlanDecision.AcquireItem(
-                            need.itemId,
-                            need.acceptedItemIds,
-                            need.displayName,
-                            need.amount,
-                            "need ${need.label} for crafting ${activeGoal.label}",
-                            score = craftPlan.score
-                        ),
+                ScoredDecision(
+                    PlanDecision.AcquireItem(
+                        need.itemId,
+                        need.acceptedItemIds,
+                        need.displayName,
+                        need.amount,
+                        "need ${need.label} for crafting ${activeGoal.label}",
+                        score = craftPlan.score
+                    ),
                     craftPlan.score
                 )
             )
@@ -366,9 +362,7 @@ object PlanningEngine {
         val smeltableGoalIds = activeGoal.acceptedItemIds.filterNot { it in plan.blockedCraftItems }
         if (smeltableGoalIds.isEmpty()) return
 
-        val cookingRecipes = RecipeLookup.cookingRecipes.filter {
-            it.resultId in smeltableGoalIds
-        }
+        val cookingRecipes = smeltableGoalIds.flatMap { RecipeLookup.getCookingRecipesFor(it) }
 
         for (recipe in cookingRecipes.take(MAX_RECIPE_SEARCH)) {
             val batches = batchesNeeded(activeRemaining, recipe.resultCount)
@@ -398,7 +392,6 @@ object PlanningEngine {
                     continue
                 }
                 val hasFurnace = (plan.inventoryCounts["furnace"] ?: 0) > 0 || plan.environment.findNearestBlock(Blocks.FURNACE) != null
-                waitClientTicks(1)
                 if (!hasFurnace && "furnace" !in ancestors) {
                     candidates.add(
                         ScoredDecision(
@@ -609,7 +602,7 @@ object PlanningEngine {
             val score = when {
                 RecipeLookup.getHarvestSourcesForDrop(id).any { !it.isSelfDrop } -> 45.0
                 RecipeLookup.getRecipesFor(id).isNotEmpty() -> 55.0
-                RecipeLookup.cookingRecipes.any { it.resultId == id } -> 35.0
+                RecipeLookup.hasCookingRecipeFor(id) -> 35.0
                 else -> 0.0
             }
             ranked.add(MissingNeed(id, itemIds.toCollection(linkedSetOf()), displayName, amount, score))
@@ -620,7 +613,7 @@ object PlanningEngine {
     }
 
     private fun ingredientDisplayName(ingredient: RecipeIngredient): String {
-        return if (ingredient.isTag) "#${ingredient.displayName}" else ingredient.displayName
+        return if (ingredient.isTag && !ingredient.displayName.startsWith("#")) "#${ingredient.displayName}" else ingredient.displayName
     }
 
     private fun distancePenalty(playerPos: BlockPos, pos: BlockPos, scale: Double): Double =

@@ -78,44 +78,81 @@ object RecipeDatabase {
         availableItems: Set<String>,
         availableCounts: Map<String, Int> = emptyMap()
     ): List<ParsedRecipe> {
+        val baseInventory = availableInventory(availableItems, availableCounts)
         return recipes.filter { recipe ->
-            recipe.ingredients.all { slot ->
-                slot.any { ingredient ->
-                    when (ingredient.kind) {
-                        IngredientKind.ITEM -> {
-                            val id = ingredient.name.removePrefix("minecraft:")
-                            val count = availableCounts[id] ?: (if (id in availableItems) 1 else 0)
-                            count > 0
-                        }
-                        IngredientKind.TAG -> {
-                            val items = TagResolver.getItems(ingredient.name)
-                            items.any { it.removePrefix("minecraft:") in availableItems }
-                        }
-                    }
-                }
-            }
+            canCraftWithNormalizedInventory(recipe, baseInventory)
         }
     }
 
     fun canCraft(recipe: ParsedRecipe, available: Map<String, Int>): Boolean {
+        return canCraftWithNormalizedInventory(recipe, normalizeInventory(available))
+    }
+
+    private fun canCraftWithNormalizedInventory(recipe: ParsedRecipe, available: Map<String, Int>): Boolean {
+        val simulated = available.toMutableMap()
         for (slot in recipe.ingredients) {
             if (slot.isEmpty()) continue
-            val satisfied = slot.any { ingredient ->
-                when (ingredient.kind) {
-                    IngredientKind.ITEM -> {
-                        val id = ingredient.name.removePrefix("minecraft:")
-                        (available[id] ?: 0) >= 1
-                    }
-                    IngredientKind.TAG -> {
-                        val items = TagResolver.getItems(ingredient.name)
-                        items.sumOf { available[it.removePrefix("minecraft:")] ?: 0 } >= 1
-                    }
-                }
-            }
-            if (!satisfied) return false
+            if (!consumeSlot(slot, simulated)) return false
         }
         return true
     }
+
+    private fun availableInventory(
+        availableItems: Set<String>,
+        availableCounts: Map<String, Int>
+    ): Map<String, Int> {
+        val inventory = normalizeInventory(availableCounts).toMutableMap()
+        for (item in availableItems) {
+            val id = normalizeItemId(item)
+            if ((inventory[id] ?: 0) <= 0) {
+                inventory[id] = 1
+            }
+        }
+        return inventory
+    }
+
+    private fun normalizeInventory(available: Map<String, Int>): Map<String, Int> {
+        val normalized = mutableMapOf<String, Int>()
+        for ((id, count) in available) {
+            if (count <= 0) continue
+            val cleanId = normalizeItemId(id)
+            normalized[cleanId] = (normalized[cleanId] ?: 0) + count
+        }
+        return normalized
+    }
+
+    private fun consumeSlot(
+        slot: List<ParsedIngredient>,
+        inventory: MutableMap<String, Int>
+    ): Boolean {
+        val choices = slot
+            .flatMap { ingredientChoices(it) }
+            .distinct()
+            .sortedByDescending { inventory[it] ?: 0 }
+
+        for (id in choices) {
+            val have = inventory[id] ?: 0
+            if (have <= 0) continue
+            inventory[id] = have - 1
+            return true
+        }
+
+        return false
+    }
+
+    private fun ingredientChoices(ingredient: ParsedIngredient): List<String> {
+        return when (ingredient.kind) {
+            IngredientKind.ITEM -> listOf(normalizeItemId(ingredient.name))
+            IngredientKind.TAG -> {
+                val resolved = TagResolver.getItems(ingredient.name)
+                if (resolved.isNotEmpty()) resolved.map { normalizeItemId(it) }
+                else listOf(normalizeItemId(ingredient.name))
+            }
+        }
+    }
+
+    private fun normalizeItemId(itemId: String): String =
+        itemId.removePrefix("#").removePrefix("minecraft:")
 
     fun dumpStats() {
         val byKind = recipes.groupBy { it.kind }
