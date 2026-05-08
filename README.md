@@ -1,5 +1,5 @@
 # Kiwi
-Kiwi is a high-performance, client-side pathfinding bot for Minecraft 1.21+ (Fabric).
+Kiwi is a high-performance, client-side pathfinding bot for Minecraft 26.1.2+ (Fabric).
 
 > [!IMPORTANT]
 > Kiwi is in a very early stage of development. Expect missing features and rough edges.
