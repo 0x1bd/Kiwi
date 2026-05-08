@@ -2,12 +2,19 @@ package org.kvxd.kiwi.render.util
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.client.gui.Font
+import net.minecraft.client.renderer.ShapeRenderer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.rendertype.RenderTypes
+import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.CollisionContext
+import org.kvxd.kiwi.client
+import org.kvxd.kiwi.level
 import org.joml.Matrix3f
 import org.joml.Matrix4f
+import org.joml.Quaternionfc
 import org.joml.Vector3f
 import org.joml.Vector4f
 import java.awt.Color
@@ -16,8 +23,13 @@ import kotlin.math.sqrt
 class RenderScope(
     val stack: PoseStack,
     val source: MultiBufferSource,
-    val cameraPos: Vec3
+    val cameraPos: Vec3,
+    private val cameraOrientation: Quaternionfc
 ) {
+
+    companion object {
+        private const val FULL_BRIGHT = 15728880
+    }
 
     private val posVec = Vector4f()
     private val normalVec = Vector3f()
@@ -52,7 +64,7 @@ class RenderScope(
         color: Color,
         lineWidth: Float = 1.0f
     ) {
-        val layer = if (isDepthTestEnabled) RenderTypes.lines() else RenderTypes.linesTranslucent()
+        val layer = if (isDepthTestEnabled) RenderTypes.lines() else ModRenderLayers.LINES_NO_DEPTH
         val buffer = source.getBuffer(layer)
 
         val relStart = relative(start)
@@ -61,7 +73,10 @@ class RenderScope(
         val dx = (relEnd.x - relStart.x).toFloat()
         val dy = (relEnd.y - relStart.y).toFloat()
         val dz = (relEnd.z - relStart.z).toFloat()
-        val invLen = 1.0f / sqrt((dx * dx + dy * dy + dz * dz).toDouble()).toFloat()
+        val length = sqrt((dx * dx + dy * dy + dz * dz).toDouble()).toFloat()
+        if (length <= 0.0001f) return
+
+        val invLen = 1.0f / length
         val nx = dx * invLen
         val ny = dy * invLen
         val nz = dz * invLen
@@ -126,6 +141,74 @@ class RenderScope(
         v(x2, y1, z2); v(x2, y1, z1); v(x2, y2, z1); v(x2, y2, z2)
         v(x1, y1, z2); v(x2, y1, z2); v(x2, y2, z2); v(x1, y2, z2)
         v(x2, y1, z1); v(x1, y1, z1); v(x1, y2, z1); v(x2, y2, z1)
+    }
+
+    fun drawBlockShape(
+        pos: BlockPos,
+        color: Color,
+        filled: Boolean = true,
+        lineWidth: Float = 1.0f
+    ) {
+        val state = level.getBlockState(pos)
+        val entity = client.gameRenderer.mainCamera.entity()
+        val context = if (entity != null) CollisionContext.of(entity) else CollisionContext.empty()
+        val shape = state.getShape(level, pos, context)
+
+        if (filled) {
+            val boxes = shape.toAabbs()
+            if (boxes.isEmpty()) {
+                drawAABB(AABB(pos), color, filled = true)
+            } else {
+                boxes.forEach { drawAABB(it.move(pos), color, filled = true) }
+            }
+            return
+        }
+
+        val layer = if (isDepthTestEnabled) RenderTypes.lines() else ModRenderLayers.LINES_NO_DEPTH
+        val buffer = source.getBuffer(layer)
+        ShapeRenderer.renderShape(
+            stack,
+            buffer,
+            shape,
+            pos.x - cameraPos.x,
+            pos.y - cameraPos.y,
+            pos.z - cameraPos.z,
+            color.rgb,
+            lineWidth
+        )
+    }
+
+    fun drawText(
+        text: String,
+        pos: Vec3,
+        color: Color = Color.WHITE,
+        scale: Float = 0.16f,
+        centered: Boolean = true,
+        seeThrough: Boolean = true
+    ) {
+        val rel = relative(pos)
+        val font = client.font
+
+        stack.pushPose()
+        stack.translate(rel.x, rel.y, rel.z)
+        stack.mulPose(cameraOrientation)
+        stack.scale(scale / 16.0f, -scale / 16.0f, scale / 16.0f)
+
+        val x = if (centered) -font.width(text) / 2.0f else 0.0f
+        val mode = if (seeThrough) Font.DisplayMode.SEE_THROUGH else Font.DisplayMode.NORMAL
+        font.drawInBatch(
+            text,
+            x,
+            0.0f,
+            color.rgb,
+            false,
+            stack.last().pose(),
+            source,
+            mode,
+            0x66000000,
+            FULL_BRIGHT
+        )
+        stack.popPose()
     }
 
     private fun drawOutlinedAABB(aabb: AABB, color: Color) {

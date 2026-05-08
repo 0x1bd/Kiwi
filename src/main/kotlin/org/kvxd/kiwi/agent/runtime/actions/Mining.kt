@@ -14,6 +14,7 @@ import org.kvxd.kiwi.agent.runtime.AgentPhase
 import org.kvxd.kiwi.agent.runtime.MiningTargeting
 import org.kvxd.kiwi.agent.runtime.AgentRuntime
 import org.kvxd.kiwi.agent.runtime.AgentFailure
+import org.kvxd.kiwi.agent.ui.DebugState
 import org.kvxd.kiwi.config.ConfigData
 import org.kvxd.kiwi.isBlockInReach
 import org.kvxd.kiwi.level
@@ -40,6 +41,9 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
 
     try {
         while (totalAttempts < maxOuterAttempts) {
+            DebugState.agentMineTarget = pos
+            DebugState.agentMineBlockId = blockInfo.id
+
             val state = level.getBlockState(pos)
             if (state.isAir) break
 
@@ -96,6 +100,10 @@ suspend fun AgentRuntime.mineBlock(blockInfo: BlockInfo, pos: BlockPos) {
     } finally {
         InputOverride.update { attack = false }
         InputOverride.release()
+        if (DebugState.agentMineTarget == pos) {
+            DebugState.agentMineTarget = null
+            DebugState.agentMineBlockId = ""
+        }
     }
 
     if (totalAttempts >= maxOuterAttempts && !level.getBlockState(pos).isAir) {

@@ -6,31 +6,36 @@ import org.kvxd.kiwi.agent.control.MovementController
 import org.kvxd.kiwi.agent.control.RotationManager
 import org.kvxd.kiwi.agent.control.input.InputOverride
 import org.kvxd.kiwi.agent.pathing.cache.CollisionCache
+import org.kvxd.kiwi.agent.ui.DebugState
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 import org.kvxd.kiwi.util.MiningUtil
+import org.kvxd.kiwi.util.registryPath
 import org.kvxd.kiwi.util.math.RotationUtils
 
 object ExecutionMiningUtil {
 
-    /**
-     * Checks if there are any solid blocks in the provided list.
-     * If so, equips the right tool and attacks the first solid block.
-     * Returns true if a block is currently being mined, false if the path is clear.
-     */
     fun mineObstructions(requiredBlocks: List<BlockPos>): Boolean {
-        // Invalidate cache for the required blocks to detect when they break
         requiredBlocks.forEach { CollisionCache.invalidate(it) }
 
-        val targetBlock = requiredBlocks.firstOrNull { canMineExecutionObstruction(it) } ?: return false
+        val targetBlock = requiredBlocks.firstOrNull { canMineExecutionObstruction(it) } ?: run {
+            clearMiningDebug()
+            return false
+        }
 
         return mineTarget(targetBlock)
     }
 
     fun minePlannedBlocks(plannedBlocks: List<BlockPos>): Boolean {
-        if (plannedBlocks.isEmpty()) return false
+        if (plannedBlocks.isEmpty()) {
+            clearMiningDebug()
+            return false
+        }
         plannedBlocks.forEach { CollisionCache.invalidate(it) }
-        val targetBlock = plannedBlocks.firstOrNull { canMineExecutionObstruction(it) } ?: return false
+        val targetBlock = plannedBlocks.firstOrNull { canMineExecutionObstruction(it) } ?: run {
+            clearMiningDebug()
+            return false
+        }
         return mineTarget(targetBlock)
     }
 
@@ -42,6 +47,9 @@ object ExecutionMiningUtil {
         MovementController.stop()
 
         val state = level.getBlockState(targetBlock)
+        DebugState.agentMineTarget = targetBlock
+        DebugState.agentMineBlockId = state.block.registryPath
+
         if (!state.isAir) {
             MiningUtil.selectBestTool(state)
         }
@@ -55,5 +63,10 @@ object ExecutionMiningUtil {
         }
 
         return true
+    }
+
+    private fun clearMiningDebug() {
+        DebugState.agentMineTarget = null
+        DebugState.agentMineBlockId = ""
     }
 }

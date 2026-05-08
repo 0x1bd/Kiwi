@@ -1,7 +1,6 @@
 package org.kvxd.kiwi.render.util
 
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
-import org.kvxd.kiwi.client
 
 object Renderer3D {
 
@@ -9,9 +8,13 @@ object Renderer3D {
         context: LevelRenderContext,
         block: RenderScope.() -> Unit
     ) {
-        val camera = client.gameRenderer.mainCamera
-        val scope = RenderScope(context.poseStack(), context.bufferSource(), camera.position())
-        scope.block()
+        val camera = context.levelState().cameraRenderState
+        val scope = RenderScope(context.poseStack(), context.bufferSource(), camera.pos, camera.orientation)
+        try {
+            scope.block()
+        } finally {
+            context.bufferSource().endBatch()
+        }
     }
 
 }
