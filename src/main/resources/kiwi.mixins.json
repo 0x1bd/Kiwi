@@ -3,12 +3,13 @@
   "minVersion": "0.8",
   "package": "org.kvxd.kiwi.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-  ],
+  "mixins": [],
   "client": [
     "MinecraftMixin",
     "MixinAvatarRenderer",
-    "MixinLocalPlayer"
+    "MixinLocalPlayer",
+    "MixinWindow",
+    "MixinSoundEngine"
   ],
   "injectors": {
     "defaultRequire": 1

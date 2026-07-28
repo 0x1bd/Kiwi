@@ -1,48 +1,107 @@
 package org.kvxd.kiwi.command.impl
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource
-import org.kvxd.kiwi.agent.Agent
-import org.kvxd.kiwi.agent.ui.DebugState
-import org.kvxd.kiwi.agent.pathing.cache.CollisionCache
-import org.kvxd.kiwi.client
+import com.mojang.brigadier.arguments.StringArgumentType
+import org.kvxd.kiwi.KnowledgeBootstrap
+import org.kvxd.kiwi.bot.Bot
 import org.kvxd.kiwi.command.AbstractCommand
+import org.kvxd.kiwi.command.argument.ClientPositionArgument
 import org.kvxd.kiwi.config.ConfigData
+import org.kvxd.kiwi.knowledge.Ids
+import org.kvxd.kiwi.knowledge.Knowledge
+import org.kvxd.kiwi.knowledge.NO_ID
 import org.kvxd.kiwi.player
-import org.kvxd.kiwi.util.feedback
 import org.kvxd.kiwi.util.error
-import java.io.File
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import org.kvxd.kiwi.util.feedback
+import org.kvxd.kiwi.world.BlockProfiles
+import org.kvxd.kiwi.world.LevelWorldView
+import org.kvxd.kiwi.world.Stances
 
 object DebugCommand : AbstractCommand("debug") {
 
     override fun build(): LiteralArgumentBuilder<FabricClientCommandSource> {
         val root = literal(name)
 
-        root.then(literal("invalidateCache").executes {
-            CollisionCache.clearCache()
-            it.source.feedback("Caches have been invalidated.")
+        root.then(literal("dump").executes { ctx ->
+            val file = org.kvxd.kiwi.bot.DebugDump.write()
+            ctx.source.feedback("Dump written to ${file.fileName}")
             1
         })
 
-        root.then(literal("dump").executes {
-            dumpState(it.source)
-            1
-        })
-
-        root.then(literal("toggle").executes {
-            val enable = !ConfigData.debugMode
-            if (enable) {
-                ConfigData.debugMode = true
-                val file = DebugState.startPathTraceLog()
-                DebugState.tracePath("debug mode enabled")
-                it.source.feedback("Debug mode: ON. Path trace: ${file.name}")
+        root.then(literal("log").executes { ctx ->
+            val history = org.kvxd.kiwi.bot.BotLog.history()
+            if (history.isEmpty()) {
+                ctx.source.feedback("No bot activity recorded yet.")
             } else {
-                DebugState.stopPathTraceLog()
-                ConfigData.debugMode = false
-                it.source.feedback("Debug mode: OFF. Path trace: ${DebugState.pathTraceFilePath ?: "none"}")
+                for (line in history.takeLast(LOG_TAIL)) ctx.source.feedback(line)
+                ctx.source.feedback("(${history.size} entries, /kiwi debug dump writes them all)")
+            }
+            1
+        })
+
+        root.then(literal("toggle").executes { ctx ->
+            ConfigData.debugMode = !ConfigData.debugMode
+            ctx.source.feedback("Debug mode: ${if (ConfigData.debugMode) "ON" else "OFF"}")
+            1
+        })
+
+        root.then(literal("reloadKnowledge").executes { ctx ->
+            Knowledge.reset()
+            BlockProfiles.clear()
+            KnowledgeBootstrap.ensureLoaded()
+            ctx.source.feedback(
+                "Knowledge reloaded: ${Knowledge.allCraftRecipes.size} craft, ${Knowledge.allSmeltRecipes.size} smelt recipes."
+            )
+            1
+        })
+
+        root.then(literal("cost").then(argument("item", StringArgumentType.word()).executes { ctx ->
+            KnowledgeBootstrap.ensureLoaded()
+            val name = StringArgumentType.getString(ctx, "item")
+            val id = Ids.item(name)
+            if (id == NO_ID) {
+                ctx.source.error("Unknown item '$name'.")
+                return@executes 0
+            }
+            val cost = Knowledge.acquisitionCost(id)
+            ctx.source.feedback(if (cost.isFinite()) "$name costs ~${"%.1f".format(cost)}" else "$name is unobtainable")
+            1
+        }))
+
+        root.then(literal("stance").executes { ctx ->
+            val view = LevelWorldView(org.kvxd.kiwi.level)
+            val pos = player.blockPosition()
+            val feet = Stances.standingFeetHeight(view, pos.x, pos.y, pos.z)
+            val profile = view.profile(pos.x, pos.y - 1, pos.z)
+            ctx.source.feedback(
+                "stance feet=${if (Stances.isValid(feet)) "%.3f".format(feet) else "none"} " +
+                    "support=${profile.shapeKind} top=${"%.3f".format(profile.supportTop)}"
+            )
+            1
+        })
+
+        root.then(literal("profile").then(argument("pos", ClientPositionArgument.blockPos()).executes { ctx ->
+            val target = ClientPositionArgument.get(ctx, "pos")
+            val view = LevelWorldView(org.kvxd.kiwi.level)
+            val profile = view.profile(target)
+            ctx.source.feedback(
+                "kind=${profile.shapeKind} supportTop=${"%.3f".format(profile.supportTop)} " +
+                    "spans=${profile.footprintSpans.joinToString(",") { "%.2f".format(it) }} " +
+                    "fluid=${profile.fluid} hazard=${profile.hazard} hardness=${profile.destroySpeed}"
+            )
+            1
+        }))
+
+        root.then(literal("status").executes { ctx ->
+            ctx.source.feedback(Bot.status())
+            Bot.navigator.lastResult?.let {
+                ctx.source.feedback(
+                    "last search: ${"%.2f".format(it.durationMs)}ms, ${it.nodesExpanded} expanded, " +
+                        "${it.iterations} iterations, status=${it.path.status}"
+                )
             }
             1
         })
@@ -50,94 +109,5 @@ object DebugCommand : AbstractCommand("debug") {
         return root
     }
 
-    private fun dumpState(source: FabricClientCommandSource) {
-        val dir = File(client.gameDirectory, "config/kiwi")
-        dir.mkdirs()
-
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        val file = File(dir, "debug_dump_$timestamp.json")
-
-        val playerPos = player.blockPosition()
-        val json = buildString {
-            appendLine("{")
-            appendLine("  \"timestamp\": \"${LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)}\",")
-            appendLine("  \"player\": {")
-            appendLine("    \"pos\": [${playerPos.x}, ${playerPos.y}, ${playerPos.z}],")
-            appendLine("    \"health\": ${player.health},")
-            appendLine("    \"food\": ${player.foodData.foodLevel},")
-            appendLine("    \"dimension\": \"${player.level().dimension().identifier()}\"")
-            appendLine("  },")
-            appendLine("  \"agent\": {")
-            appendLine("    \"active\": ${Agent.active},")
-            appendLine("    \"phase\": \"${DebugState.agentPhase}\",")
-            appendLine("    \"objective\": \"${DebugState.agentObjective}\",")
-            appendLine("    \"objectiveAmount\": ${DebugState.agentObjectiveAmount},")
-            appendLine("    \"goalCount\": ${DebugState.agentGoalCount},")
-            appendLine("    \"goalTop\": \"${DebugState.agentGoalTop}\",")
-            appendLine("    \"mineTarget\": ${DebugState.agentMineTarget?.let { "[${it.x},${it.y},${it.z}]" } ?: "null"},")
-            appendLine("    \"mineBlockId\": \"${DebugState.agentMineBlockId}\",")
-            appendLine("    \"planFailures\": ${DebugState.agentPlanFailures},")
-            appendLine("    \"knownBlocks\": ${DebugState.agentKnownBlocks},")
-            appendLine("    \"stuckTicks\": ${DebugState.agentStuckTicks}")
-            appendLine("  },")
-            appendLine("  \"path\": {")
-            appendLine("    \"active\": ${DebugState.pathActive},")
-            appendLine("    \"calculating\": ${DebugState.pathCalculating},")
-            appendLine("    \"traceFile\": ${DebugState.pathTraceFilePath?.let { "\"${escapeJson(it)}\"" } ?: "null"},")
-            appendLine("    \"size\": ${DebugState.pathSize},")
-            appendLine("    \"index\": ${DebugState.pathIndex},")
-            appendLine("    \"remaining\": ${DebugState.pathRemaining},")
-            appendLine("    \"partial\": ${DebugState.pathPartial},")
-            appendLine("    \"goalType\": \"${DebugState.pathGoalType}\",")
-            appendLine("    \"lastAction\": \"${DebugState.pathLastAction}\",")
-            appendLine("    \"stuckTicks\": ${DebugState.pathStuckTicks},")
-            appendLine("    \"goalReached\": ${DebugState.pathGoalReached}")
-            appendLine("  },")
-            appendLine("  \"config\": {")
-            appendLine("    \"debugMode\": ${ConfigData.debugMode},")
-            appendLine("    \"blockReach\": ${player.blockInteractionRange()},")
-            appendLine("    \"entityReach\": ${player.entityInteractionRange()},")
-            appendLine("    \"blockScanRadius\": ${ConfigData.blockScanRadius},")
-            appendLine("    \"stuckThresholdTicks\": ${ConfigData.stuckThresholdTicks}")
-            appendLine("  },")
-            appendLine("  \"recentLog\": [")
-            if (DebugState.recentMessages.isEmpty()) {
-                appendLine("  ],")
-            } else {
-                for ((i, msg) in DebugState.recentMessages.withIndex()) {
-                    val comma = if (i < DebugState.recentMessages.lastIndex) "," else ""
-                    appendLine("    \"${escapeJson(msg)}\"$comma")
-                }
-                appendLine("  ],")
-            }
-            appendLine("  \"pathTrace\": [")
-            if (DebugState.pathTrace.isEmpty()) {
-                appendLine("  ]")
-            } else {
-                for ((i, msg) in DebugState.pathTrace.withIndex()) {
-                    val comma = if (i < DebugState.pathTrace.lastIndex) "," else ""
-                    appendLine("    \"${escapeJson(msg)}\"$comma")
-                }
-                appendLine("  ]")
-            }
-            appendLine("}")
-        }
-
-        try {
-            file.writeText(json)
-            source.feedback("Debug dump saved to ${file.name}")
-            DebugState.log("Debug dump exported: ${file.name}")
-        } catch (e: Exception) {
-            source.error("Failed to write debug dump: ${e.message}")
-        }
-    }
-
-    private fun escapeJson(value: String): String {
-        return value
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-    }
+    private const val LOG_TAIL = 20
 }

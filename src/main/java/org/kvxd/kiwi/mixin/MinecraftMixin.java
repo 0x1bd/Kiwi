@@ -6,7 +6,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jspecify.annotations.Nullable;
-import org.kvxd.kiwi.agent.control.RotationManager;
+import org.kvxd.kiwi.control.LookController;
 import org.kvxd.kiwi.util.math.RaycastHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,7 +31,7 @@ public abstract class MinecraftMixin {
 
     @Inject(method = "pick(F)V", at = @At("HEAD"), cancellable = true)
     private void kiwi$pick(float f, CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget()) {
+        if (LookController.getHasTarget()) {
             Entity cameraEntity = getCameraEntity();
             if (cameraEntity == null) return;
 
