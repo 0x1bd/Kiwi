@@ -6,7 +6,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.kvxd.kiwi.config.ConfigData;
-import org.kvxd.kiwi.agent.control.RotationManager;
+import org.kvxd.kiwi.control.LookController;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -37,12 +37,12 @@ public abstract class MixinLocalPlayer extends Player {
 
     @Inject(method = "aiStep", at = @At("HEAD"))
     private void kiwi$aiStepHead(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
+        if (LookController.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYRot();
             this.storedPitch = this.getXRot();
 
-            this.setYRot(Mth.wrapDegrees(RotationManager.INSTANCE.getTargetYRot()));
-            this.setXRot(RotationManager.INSTANCE.getTargetXRot());
+            this.setYRot(Mth.wrapDegrees(LookController.getTargetYaw()));
+            this.setXRot(LookController.getTargetPitch());
 
             this.setYBodyRot(this.getYRot());
             this.setYHeadRot(this.getYRot());
@@ -51,7 +51,7 @@ public abstract class MixinLocalPlayer extends Player {
 
     @Inject(method = "aiStep", at = @At("RETURN"))
     private void kiwi$aiStepReturn(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
+        if (LookController.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYRot(this.storedYaw);
             this.setXRot(this.storedPitch);
 
@@ -71,18 +71,18 @@ public abstract class MixinLocalPlayer extends Player {
 
     @Inject(method = "sendPosition", at = @At("HEAD"))
     private void kiwi$sendPositionHead(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
+        if (LookController.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.storedYaw = this.getYRot();
             this.storedPitch = this.getXRot();
 
-            this.setYRot(Mth.wrapDegrees(RotationManager.INSTANCE.getTargetYRot()));
-            this.setXRot(RotationManager.INSTANCE.getTargetXRot());
+            this.setYRot(Mth.wrapDegrees(LookController.getTargetYaw()));
+            this.setXRot(LookController.getTargetPitch());
         }
     }
 
     @Inject(method = "sendPosition", at = @At("RETURN"))
     private void kiwi$sendPositionReturn(CallbackInfo ci) {
-        if (RotationManager.INSTANCE.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
+        if (LookController.getHasTarget() && ConfigData.INSTANCE.getFreelook()) {
             this.setYRot(this.storedYaw);
             this.setXRot(this.storedPitch);
         }

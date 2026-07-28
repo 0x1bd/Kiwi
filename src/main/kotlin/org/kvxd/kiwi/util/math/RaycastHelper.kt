@@ -3,7 +3,7 @@ package org.kvxd.kiwi.util.math
 import net.minecraft.world.entity.projectile.ProjectileUtil
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.HitResult
-import org.kvxd.kiwi.agent.control.RotationManager
+import org.kvxd.kiwi.control.LookController
 import org.kvxd.kiwi.level
 import org.kvxd.kiwi.player
 
@@ -16,10 +16,10 @@ object RaycastHelper {
 
         val cameraPos = player.getEyePosition(tickDelta)
 
-        val yRot = if (RotationManager.hasTarget) RotationManager.targetYRot else player.yRot
-        val xRot = if (RotationManager.hasTarget) RotationManager.targetXRot else player.xRot
+        val yRot = LookController.effectiveYaw()
+        val xRot = LookController.effectivePitch()
 
-        val rotationVec = RotationUtils.getRotationVector(xRot, yRot)
+        val rotationVec = LookController.rotationVector(xRot, yRot)
         val rayEnd = cameraPos.add(rotationVec.multiply(maxReach, maxReach, maxReach))
 
         var target: HitResult = level.clip(

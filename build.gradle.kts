@@ -24,6 +24,16 @@ fabricApi {
     configureDataGeneration {
         client = true
     }
+
+    @Suppress("UnstableApiUsage")
+    configureTests {
+        createSourceSet = false
+        modId = "kiwi"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+        username = "KiwiBot"
+    }
 }
 
 repositories {
